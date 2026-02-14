@@ -209,6 +209,9 @@ func TestGetMatch(t *testing.T) {
 	if len(resp.Msg.Players) != 2 {
 		t.Errorf("expected 2 players, got %d", len(resp.Msg.Players))
 	}
+	if m.DemoFileHash == "" {
+		t.Error("expected non-empty demo file hash")
+	}
 }
 
 func TestGetMatchNotFound(t *testing.T) {

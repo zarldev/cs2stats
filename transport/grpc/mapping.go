@@ -49,6 +49,7 @@ func matchDetailToProto(m service.MatchDetail) *demov1.Match {
 		TeamBName:       m.TeamB,
 		TeamAScore:      int32(m.ScoreA),
 		TeamBScore:      int32(m.ScoreB),
+		DemoFileHash:    m.DemoHash,
 	}
 }
 
@@ -62,6 +63,7 @@ func matchSummaryToProto(m service.MatchSummary) *demov1.Match {
 		TeamBName:       m.TeamB,
 		TeamAScore:      int32(m.ScoreA),
 		TeamBScore:      int32(m.ScoreB),
+		DemoFileHash:    m.DemoHash,
 	}
 }
 
