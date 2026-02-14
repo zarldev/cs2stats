@@ -8,6 +8,7 @@ import (
 	demoinfocs "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs"
 	common "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
 	events "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
+	msgs2 "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
 )
 
 // Parse reads a CS2 demo from r and returns a complete match analysis.
@@ -18,17 +19,35 @@ func Parse(r io.Reader) (*Match, error) {
 	s := newParseState(p)
 	s.registerHandlers()
 
+	// CS2 demos (Source 2) do not populate header fields like MapName or
+	// PlaybackTime. Register a net message handler for CSVCMsg_ServerInfo
+	// which carries the map name in CS2 demos.
+	p.RegisterNetMessageHandler(func(m *msgs2.CSVCMsg_ServerInfo) {
+		if name := m.GetMapName(); name != "" {
+			s.match.Map = name
+		}
+	})
+
 	header, err := p.ParseHeader()
 	if err != nil {
 		return nil, fmt.Errorf("parse header: %w", err)
 	}
 
-	s.match.Map = header.MapName
+	// header fields work for CS:GO demos; CS2 overrides via ServerInfo above
+	if header.MapName != "" {
+		s.match.Map = header.MapName
+	}
 	s.match.Duration = header.PlaybackTime
 
 	err = p.ParseToEnd()
 	if err != nil {
 		return nil, fmt.Errorf("parse demo: %w", err)
+	}
+
+	// CS2 headers always report zero PlaybackTime. Fall back to the parser's
+	// current game time which, after ParseToEnd, equals the demo length.
+	if s.match.Duration == 0 {
+		s.match.Duration = p.CurrentTime()
 	}
 
 	return s.buildMatch(), nil
@@ -68,6 +87,10 @@ type parseState struct {
 	ctEconomy EconomySnapshot
 	tEconomy  EconomySnapshot
 
+	// entity-based damage tracking for CS2 demos (no PlayerHurt events)
+	prevDamage     map[uint64]int
+	hasHurtEvents  bool
+
 	rounds []Round
 }
 
@@ -84,6 +107,7 @@ func newParseState(p demoinfocs.Parser) *parseState {
 		initialAliveT:  make(map[uint64]bool),
 		aliveCT:        make(map[uint64]bool),
 		aliveT:         make(map[uint64]bool),
+		prevDamage:     make(map[uint64]int),
 	}
 }
 
@@ -302,6 +326,9 @@ func (s *parseState) onPlayerHurt(e events.PlayerHurt) {
 	if e.Attacker == nil || e.Player == nil {
 		return
 	}
+	if e.Attacker.SteamID64 == 0 {
+		return
+	}
 
 	// only count damage between enemies
 	if e.Attacker.Team == e.Player.Team {
@@ -309,11 +336,11 @@ func (s *parseState) onPlayerHurt(e events.PlayerHurt) {
 	}
 
 	s.ensurePlayer(e.Attacker)
+	s.hasHurtEvents = true
 
-	// use HealthDamageTaken which excludes overkill damage
+	// prefer HealthDamageTaken (excludes overkill), fall back to HealthDamage
 	dmg := e.HealthDamageTaken
 	if dmg <= 0 {
-		// fallback to HealthDamage if HealthDamageTaken is not available
 		dmg = e.HealthDamage
 		if e.Health < 0 {
 			dmg += e.Health
@@ -404,6 +431,42 @@ func (s *parseState) onRoundEnd(e events.RoundEnd) {
 	}
 
 	s.rounds = append(s.rounds, round)
+
+	// CS2 demos don't fire PlayerHurt events. Read cumulative damage
+	// from entity properties and compute the per-round delta.
+	if !s.hasHurtEvents {
+		s.collectEntityDamage()
+	}
+}
+
+// collectEntityDamage reads m_pActionTrackingServices.m_iDamage from
+// player entities. The value is cumulative, so we track the previous
+// reading and record the delta as the round damage.
+func (s *parseState) collectEntityDamage() {
+	gs := s.p.GameState()
+	for _, pl := range gs.Participants().Playing() {
+		if pl == nil || pl.SteamID64 == 0 || pl.Entity == nil {
+			continue
+		}
+		prop := pl.Entity.Property("m_pActionTrackingServices.m_iDamage")
+		if prop == nil {
+			continue
+		}
+		cur := prop.Value().Int()
+		prev := s.prevDamage[pl.SteamID64]
+		delta := cur - prev
+		if delta < 0 {
+			delta = 0
+		}
+		s.prevDamage[pl.SteamID64] = cur
+
+		if delta > 0 {
+			s.ensurePlayer(pl)
+			if pt := s.players[pl.SteamID64]; pt != nil {
+				pt.recordDamage(delta)
+			}
+		}
+	}
 }
 
 func (s *parseState) buildMatch() *Match {
@@ -422,6 +485,16 @@ func (s *parseState) buildMatch() *Match {
 		tScore = t.Score()
 	}
 
+	// CS2 matchmaking demos leave ClanName empty. Fall back to side labels.
+	ctName := s.ctName
+	tName := s.tName
+	if ctName == "" {
+		ctName = "Counter-Terrorists"
+	}
+	if tName == "" {
+		tName = "Terrorists"
+	}
+
 	// collect steam IDs per team
 	var ctPlayers, tPlayers []uint64
 	for _, pt := range s.players {
@@ -435,10 +508,11 @@ func (s *parseState) buildMatch() *Match {
 
 	match := &Match{
 		Map:      s.match.Map,
+		Date:     time.Now(),
 		Duration: s.match.Duration,
 		Teams: [2]Team{
 			{
-				Name:       s.ctName,
+				Name:       ctName,
 				Score:      ctScore,
 				StartedAs:  SideCT,
 				Players:    ctPlayers,
@@ -446,7 +520,7 @@ func (s *parseState) buildMatch() *Match {
 				RoundsLost: tScore,
 			},
 			{
-				Name:       s.tName,
+				Name:       tName,
 				Score:      tScore,
 				StartedAs:  SideT,
 				Players:    tPlayers,

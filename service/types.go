@@ -12,6 +12,7 @@ type MatchDetail struct {
 	TeamB           string
 	ScoreA          int
 	ScoreB          int
+	DemoHash        string
 }
 
 // MatchSummary is a lightweight listing entry.
@@ -24,6 +25,7 @@ type MatchSummary struct {
 	TeamB           string
 	ScoreA          int
 	ScoreB          int
+	DemoHash        string
 	CreatedAt       time.Time
 }
 

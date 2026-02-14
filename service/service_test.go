@@ -187,6 +187,12 @@ func TestIngestDemo(t *testing.T) {
 	if detail.ScoreA != 16 || detail.ScoreB != 12 {
 		t.Errorf("score: got %d-%d, want 16-12", detail.ScoreA, detail.ScoreB)
 	}
+	if detail.DemoHash == "" {
+		t.Error("expected non-empty demo hash after ingest")
+	}
+	if detail.Date.IsZero() {
+		t.Error("expected non-zero date after ingest")
+	}
 }
 
 func TestIngestDemoDuplicate(t *testing.T) {
@@ -221,6 +227,9 @@ func TestGetMatch(t *testing.T) {
 	}
 	if detail.TeamA != "Astralis" {
 		t.Errorf("team A: got %s, want Astralis", detail.TeamA)
+	}
+	if detail.DemoHash != "seed-hash-123" {
+		t.Errorf("demo hash: got %s, want seed-hash-123", detail.DemoHash)
 	}
 }
 

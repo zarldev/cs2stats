@@ -158,6 +158,7 @@ func mapRepoMatchToDetail(m repository.Match) MatchDetail {
 		TeamB:           m.TeamB,
 		ScoreA:          m.ScoreA,
 		ScoreB:          m.ScoreB,
+		DemoHash:        m.DemoHash,
 	}
 }
 
