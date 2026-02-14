@@ -1,19 +1,75 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-@theme {
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* cs2 team colors */
   --color-team-ct: #5B9BD5;
   --color-team-t: #EAC843;
   --color-team-ct-dim: #3b7bb5;
   --color-team-t-dim: #c9a732;
+
+  /* shadcn color system */
+  --color-background: oklch(0.145 0.013 257.5);
+  --color-foreground: oklch(0.95 0.01 257.5);
+  --color-card: oklch(0.17 0.013 257.5);
+  --color-card-foreground: oklch(0.95 0.01 257.5);
+  --color-popover: oklch(0.17 0.013 257.5);
+  --color-popover-foreground: oklch(0.95 0.01 257.5);
+  --color-primary: oklch(0.65 0.12 240);
+  --color-primary-foreground: oklch(0.14 0.013 257.5);
+  --color-secondary: oklch(0.25 0.013 257.5);
+  --color-secondary-foreground: oklch(0.9 0.01 257.5);
+  --color-muted: oklch(0.22 0.013 257.5);
+  --color-muted-foreground: oklch(0.6 0.015 257.5);
+  --color-accent: oklch(0.25 0.013 257.5);
+  --color-accent-foreground: oklch(0.9 0.01 257.5);
+  --color-destructive: oklch(0.55 0.2 27);
+  --color-destructive-foreground: oklch(0.95 0.01 257.5);
+  --color-border: oklch(0.28 0.013 257.5);
+  --color-input: oklch(0.28 0.013 257.5);
+  --color-ring: oklch(0.65 0.12 240);
+  --color-sidebar: oklch(0.15 0.013 257.5);
+  --color-sidebar-foreground: oklch(0.9 0.01 257.5);
+  --color-sidebar-primary: oklch(0.65 0.12 240);
+  --color-sidebar-primary-foreground: oklch(0.14 0.013 257.5);
+  --color-sidebar-accent: oklch(0.22 0.013 257.5);
+  --color-sidebar-accent-foreground: oklch(0.9 0.01 257.5);
+  --color-sidebar-border: oklch(0.25 0.013 257.5);
+  --color-sidebar-ring: oklch(0.65 0.12 240);
+
+  --radius-lg: 0.5rem;
+  --radius-md: calc(var(--radius-lg) - 2px);
+  --radius-sm: calc(var(--radius-lg) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+}
+
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+  }
 }
 
 html {
   color-scheme: dark;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
 }
 
 /* scrollbar styling */
@@ -23,14 +79,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-slate-900);
+  background: oklch(0.145 0.013 257.5);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-slate-700);
+  background: oklch(0.28 0.013 257.5);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-slate-600);
+  background: oklch(0.35 0.013 257.5);
 }

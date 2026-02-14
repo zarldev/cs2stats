@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import type { KillPosition, Player } from "../api/types";
+import { Select } from "@/components/ui/select";
 
 interface KillMapProps {
   kills: KillPosition[];
@@ -90,10 +91,10 @@ export function KillMap({
     <div>
       {/* filters */}
       <div className="mb-4 flex flex-wrap gap-3">
-        <select
+        <Select
           value={filterRound}
           onChange={(e) => setFilterRound(Number(e.target.value))}
-          className="rounded bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-team-ct"
+          className="w-auto"
         >
           <option value={0}>All Rounds</option>
           {roundOptions.map((r) => (
@@ -101,12 +102,12 @@ export function KillMap({
               Round {r}
             </option>
           ))}
-        </select>
+        </Select>
 
-        <select
+        <Select
           value={filterPlayer}
           onChange={(e) => setFilterPlayer(e.target.value)}
-          className="rounded bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-team-ct"
+          className="w-auto"
         >
           <option value="">All Players</option>
           {players.map((p) => (
@@ -114,12 +115,12 @@ export function KillMap({
               {p.name}
             </option>
           ))}
-        </select>
+        </Select>
 
-        <select
+        <Select
           value={filterWeapon}
           onChange={(e) => setFilterWeapon(e.target.value)}
-          className="rounded bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-team-ct"
+          className="w-auto"
         >
           <option value="">All Weapons</option>
           {weapons.map((w) => (
@@ -127,15 +128,15 @@ export function KillMap({
               {w}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {/* map canvas */}
-      <div className="relative inline-block rounded-lg bg-slate-800 p-2">
+      <div className="relative inline-block rounded-lg bg-muted p-2">
         <svg
           width={MAP_SIZE}
           height={MAP_SIZE}
-          className="rounded bg-slate-900"
+          className="rounded bg-background"
         >
           {/* grid lines */}
           {Array.from({ length: 11 }, (_, i) => {
@@ -147,7 +148,7 @@ export function KillMap({
                   y1={0}
                   x2={pos}
                   y2={MAP_SIZE}
-                  stroke="#1e293b"
+                  stroke="hsl(215 25% 15%)"
                   strokeWidth={1}
                 />
                 <line
@@ -155,7 +156,7 @@ export function KillMap({
                   y1={pos}
                   x2={MAP_SIZE}
                   y2={pos}
-                  stroke="#1e293b"
+                  stroke="hsl(215 25% 15%)"
                   strokeWidth={1}
                 />
               </g>
@@ -174,7 +175,7 @@ export function KillMap({
                   y1={ap.ny}
                   x2={vp.nx}
                   y2={vp.ny}
-                  stroke="#475569"
+                  stroke="hsl(215 15% 35%)"
                   strokeWidth={0.5}
                   opacity={0.4}
                 />
@@ -228,27 +229,27 @@ export function KillMap({
         {/* hover tooltip */}
         {hovered && (
           <div
-            className="pointer-events-none absolute z-10 rounded bg-slate-950 px-3 py-2 text-xs shadow-lg"
+            className="pointer-events-none absolute z-10 rounded bg-card border border-border px-3 py-2 text-xs shadow-lg"
             style={{
               left: hovered.x + 12,
               top: hovered.y - 10,
             }}
           >
-            <div className="text-slate-200">
+            <div className="text-foreground">
               {playerName(hovered.kill.attackerSteamId)}{" "}
-              <span className="text-slate-500">&rarr;</span>{" "}
+              <span className="text-muted-foreground">&rarr;</span>{" "}
               {playerName(hovered.kill.victimSteamId)}
             </div>
-            <div className="text-slate-400">
+            <div className="text-muted-foreground">
               {hovered.kill.weapon}
               {hovered.kill.isHeadshot && " (HS)"}
             </div>
-            <div className="text-slate-500">Round {hovered.kill.roundNumber}</div>
+            <div className="text-muted-foreground/70">Round {hovered.kill.roundNumber}</div>
           </div>
         )}
 
         {/* legend */}
-        <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
+        <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-full bg-team-ct" />
             <span>{teamAName} (attacker)</span>
@@ -259,13 +260,13 @@ export function KillMap({
           </span>
           <span className="flex items-center gap-1">
             <svg width="10" height="10">
-              <line x1="1" y1="1" x2="9" y2="9" stroke="#94a3b8" strokeWidth="2" />
-              <line x1="9" y1="1" x2="1" y2="9" stroke="#94a3b8" strokeWidth="2" />
+              <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" strokeWidth="2" />
+              <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" strokeWidth="2" />
             </svg>
             <span>victim</span>
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-2.5 w-2.5 rounded-full border border-white bg-slate-600" />
+            <span className="inline-block h-2.5 w-2.5 rounded-full border border-white bg-muted" />
             <span>headshot</span>
           </span>
         </div>

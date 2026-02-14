@@ -43,7 +43,7 @@ function buyTypeBadgeColor(bt: BuyType): string {
     case "BUY_TYPE_PISTOL":
       return "bg-purple-800 text-purple-200";
     default:
-      return "bg-slate-700 text-slate-300";
+      return "bg-muted text-muted-foreground";
   }
 }
 
@@ -71,30 +71,30 @@ export function EconomyChart({
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(215 20% 22%)" />
             <XAxis
               dataKey="round"
-              tick={{ fill: "#94a3b8", fontSize: 12 }}
-              label={{ value: "Round", fill: "#94a3b8", position: "insideBottom", offset: -5 }}
+              tick={{ fill: "hsl(215 15% 60%)", fontSize: 12 }}
+              label={{ value: "Round", fill: "hsl(215 15% 60%)", position: "insideBottom", offset: -5 }}
             />
             <YAxis
-              tick={{ fill: "#94a3b8", fontSize: 12 }}
+              tick={{ fill: "hsl(215 15% 60%)", fontSize: 12 }}
               label={{
                 value: "Equipment Value ($)",
-                fill: "#94a3b8",
+                fill: "hsl(215 15% 60%)",
                 angle: -90,
                 position: "insideLeft",
               }}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#1e293b",
-                border: "1px solid #334155",
+                backgroundColor: "hsl(215 25% 12%)",
+                border: "1px solid hsl(215 20% 22%)",
                 borderRadius: "8px",
               }}
-              labelStyle={{ color: "#e2e8f0" }}
+              labelStyle={{ color: "hsl(215 15% 90%)" }}
             />
-            <Legend wrapperStyle={{ color: "#94a3b8" }} />
+            <Legend wrapperStyle={{ color: "hsl(215 15% 60%)" }} />
             <Bar
               dataKey="teamASpend"
               name={`${teamAName} Spend`}
@@ -131,18 +131,18 @@ export function EconomyChart({
 
       {/* buy type badges per round */}
       <div className="mt-6">
-        <h4 className="mb-2 text-sm font-medium text-slate-400">
+        <h4 className="mb-2 text-sm font-medium text-muted-foreground">
           Buy Types
         </h4>
         <div className="overflow-x-auto">
           <table className="text-xs">
             <thead>
               <tr>
-                <th className="px-2 py-1 text-left text-slate-500">Team</th>
+                <th className="px-2 py-1 text-left text-muted-foreground/70">Team</th>
                 {rounds.map((r) => (
                   <th
                     key={r.roundNumber}
-                    className="px-1 py-1 text-center text-slate-500"
+                    className="px-1 py-1 text-center text-muted-foreground/70"
                   >
                     R{r.roundNumber}
                   </th>
