@@ -158,9 +158,10 @@ type EconomySnapshot struct {
 type BuyType int
 
 const (
-	BuyTypeEco   BuyType = iota // < $5000 team spend
-	BuyTypeForce                // $5000 - $15000 team spend
-	BuyTypeFull                 // > $15000 team spend
+	BuyTypeEco    BuyType = iota // < $5000 team spend
+	BuyTypeForce                 // $5000 - $15000 team spend
+	BuyTypeFull                  // > $15000 team spend
+	BuyTypePistol                // pistol round (round 1 or first round of second half)
 )
 
 func (b BuyType) String() string {
@@ -171,6 +172,8 @@ func (b BuyType) String() string {
 		return "Force"
 	case BuyTypeFull:
 		return "Full"
+	case BuyTypePistol:
+		return "Pistol"
 	default:
 		return "Unknown"
 	}
@@ -186,6 +189,21 @@ func ClassifyBuyType(teamEquipmentValue int) BuyType {
 	default:
 		return BuyTypeFull
 	}
+}
+
+// isPistolRound returns true for the first round of each half.
+// In standard CS2 matches: round 1 (first half) and round 13 (second half).
+// In overtime: rounds 25, 28, 31, ... (every 3 rounds after regulation).
+func isPistolRound(roundNum int) bool {
+	if roundNum == 1 || roundNum == 13 {
+		return true
+	}
+	// overtime pistol rounds: first round of each OT half
+	// OT starts at round 25, each OT is 6 rounds (3 per side)
+	if roundNum >= 25 && (roundNum-25)%6 == 0 {
+		return true
+	}
+	return false
 }
 
 // BombEvent records a bomb plant or defuse.

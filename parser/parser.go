@@ -91,6 +91,10 @@ type parseState struct {
 	prevDamage     map[uint64]int
 	hasHurtEvents  bool
 
+	// CS2 demos don't fire RoundFreezetimeEnd events. Track whether
+	// we received one so we can fall back to round-end economy capture.
+	hasFreezetimeEnd bool
+
 	rounds []Round
 }
 
@@ -146,6 +150,7 @@ func (s *parseState) onRoundStart(_ events.RoundStart) {
 }
 
 func (s *parseState) onRoundFreezetimeEnd(_ events.RoundFreezetimeEnd) {
+	s.hasFreezetimeEnd = true
 	gs := s.p.GameState()
 
 	s.roundStart = s.p.CurrentTime()
@@ -179,9 +184,10 @@ func (s *parseState) onRoundFreezetimeEnd(_ events.RoundFreezetimeEnd) {
 		s.tName = t.ClanName()
 	}
 
-	// snapshot economy
-	s.ctEconomy = snapshotTeamEconomy(ct)
-	s.tEconomy = snapshotTeamEconomy(t)
+	// snapshot economy at freeze time end for CS:GO demos.
+	// CS2 demos do not fire this event, so economy is captured at round end.
+	s.ctEconomy = snapshotTeamEconomy(ct, s.roundNum)
+	s.tEconomy = snapshotTeamEconomy(t, s.roundNum)
 }
 
 func (s *parseState) onKill(e events.Kill) {
@@ -406,6 +412,16 @@ func (s *parseState) onRoundEnd(e events.RoundEnd) {
 		if pt := s.players[pl.SteamID64]; pt != nil {
 			pt.markSurvived(s.roundNum)
 		}
+	}
+
+	// CS2 demos don't fire RoundFreezetimeEnd, so economy data captured
+	// there will be zero. Fall back to reading at round end where the
+	// entity properties are populated.
+	if !s.hasFreezetimeEnd {
+		ct := gs.TeamCounterTerrorists()
+		t := gs.TeamTerrorists()
+		s.ctEconomy = snapshotTeamEconomy(ct, s.roundNum)
+		s.tEconomy = snapshotTeamEconomy(t, s.roundNum)
 	}
 
 	var firstKill *KillEvent

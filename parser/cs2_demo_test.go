@@ -80,6 +80,42 @@ func TestParseCS2Demo(t *testing.T) {
 	} else {
 		t.Logf("rounds: %d", len(m.Rounds))
 	}
+
+	// Bug 6: economy data should not be all zeros
+	hasNonZeroEquip := false
+	hasNonZeroSpend := false
+	hasPistolRound := false
+	hasNonEcoBuyType := false
+	for _, r := range m.Rounds {
+		if r.CTEconomy.EquipmentValue > 0 || r.TEconomy.EquipmentValue > 0 {
+			hasNonZeroEquip = true
+		}
+		if r.CTEconomy.TeamSpend > 0 || r.TEconomy.TeamSpend > 0 {
+			hasNonZeroSpend = true
+		}
+		if r.CTEconomy.BuyType == BuyTypePistol || r.TEconomy.BuyType == BuyTypePistol {
+			hasPistolRound = true
+		}
+		if r.CTEconomy.BuyType != BuyTypeEco || r.TEconomy.BuyType != BuyTypeEco {
+			hasNonEcoBuyType = true
+		}
+		t.Logf("  round %d: CT equip=%d spend=%d buy=%s | T equip=%d spend=%d buy=%s",
+			r.Number,
+			r.CTEconomy.EquipmentValue, r.CTEconomy.TeamSpend, r.CTEconomy.BuyType,
+			r.TEconomy.EquipmentValue, r.TEconomy.TeamSpend, r.TEconomy.BuyType)
+	}
+	if !hasNonZeroEquip {
+		t.Error("all rounds have zero equipment value, expected non-zero economy data")
+	}
+	if !hasNonZeroSpend {
+		t.Error("all rounds have zero team spend, expected non-zero economy data")
+	}
+	if !hasPistolRound {
+		t.Error("no pistol rounds detected, expected round 1 and/or 13 to be Pistol")
+	}
+	if !hasNonEcoBuyType {
+		t.Error("all rounds are Eco, expected a mix of buy types")
+	}
 }
 
 // TestBuildMatchTeamNameFallback verifies that empty clan names
