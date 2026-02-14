@@ -409,6 +409,7 @@ func TestBuyTypeString(t *testing.T) {
 		{BuyTypeEco, "Eco"},
 		{BuyTypeForce, "Force"},
 		{BuyTypeFull, "Full"},
+		{BuyTypePistol, "Pistol"},
 		{BuyType(99), "Unknown"},
 	}
 
@@ -460,6 +461,35 @@ func TestRatingRelativeOrdering(t *testing.T) {
 	}
 	if avg <= bad {
 		t.Errorf("avg rating (%f) should be > bad rating (%f)", avg, bad)
+	}
+}
+
+func TestIsPistolRound(t *testing.T) {
+	tests := []struct {
+		name  string
+		round int
+		want  bool
+	}{
+		{name: "round 1 (first half)", round: 1, want: true},
+		{name: "round 2", round: 2, want: false},
+		{name: "round 12 (last of first half)", round: 12, want: false},
+		{name: "round 13 (second half)", round: 13, want: true},
+		{name: "round 14", round: 14, want: false},
+		{name: "round 24 (last regulation)", round: 24, want: false},
+		{name: "round 25 (OT1 first half)", round: 25, want: true},
+		{name: "round 26", round: 26, want: false},
+		{name: "round 28 (OT1 second half)", round: 28, want: false},
+		{name: "round 31 (OT2 first half)", round: 31, want: true},
+		{name: "round 37 (OT3 first half)", round: 37, want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isPistolRound(tt.round)
+			if got != tt.want {
+				t.Errorf("isPistolRound(%d) = %v, want %v", tt.round, got, tt.want)
+			}
+		})
 	}
 }
 
