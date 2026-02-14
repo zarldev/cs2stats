@@ -63,24 +63,26 @@ export function TableRowSkeleton({ columns = 5 }: { columns?: number }) {
 
 export function MatchTableSkeleton() {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            {["Map", "Date", "Teams", "Score", "Duration"].map((h) => (
-              <th key={h} className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                {h}
-              </th>
+    <Card>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              {["Map", "Date", "Teams", "Score", "Duration"].map((h) => (
+                <th key={h} className="h-10 px-2 text-left text-sm font-medium text-muted-foreground">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 8 }, (_, i) => (
+              <TableRowSkeleton key={i} />
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from({ length: 8 }, (_, i) => (
-            <TableRowSkeleton key={i} />
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 
@@ -89,15 +91,20 @@ export function MatchDetailSkeleton() {
     <div className="space-y-6">
       <Card>
         <CardContent className="p-6">
-          <Skeleton className="mb-2 h-4 w-32" />
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-8 w-36" />
-            <Skeleton className="h-10 w-20" />
-            <Skeleton className="h-8 w-36" />
+          <Skeleton className="mb-4 h-6 w-32" />
+          <div className="flex items-center justify-center gap-6 py-4">
+            <Skeleton className="h-8 w-28" />
+            <div className="flex items-baseline gap-3">
+              <Skeleton className="h-12 w-12" />
+              <Skeleton className="h-6 w-4" />
+              <Skeleton className="h-12 w-12" />
+            </div>
+            <Skeleton className="h-8 w-28" />
           </div>
-          <div className="mt-2 flex gap-4">
-            <Skeleton className="h-4 w-20" />
+          <div className="mt-2 flex justify-center gap-4">
+            <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-24" />
           </div>
         </CardContent>
       </Card>
@@ -117,16 +124,27 @@ export function MatchDetailSkeleton() {
 
 export function ScoreboardSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {[0, 1].map((team) => (
-        <div key={team} className="space-y-2">
-          <Skeleton className="h-6 w-40" />
-          <div className="space-y-1">
-            {Array.from({ length: 5 }, (_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        </div>
+        <Card key={team}>
+          <CardHeader className="pb-3">
+            <Skeleton className="h-6 w-40" />
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="space-y-0">
+              {Array.from({ length: 5 }, (_, i) => (
+                <div key={i} className="flex gap-2 border-b border-border px-4 py-2">
+                  <Skeleton className="h-5 w-24" />
+                  <div className="flex flex-1 justify-end gap-4">
+                    {Array.from({ length: 8 }, (_, j) => (
+                      <Skeleton key={j} className="h-5 w-8" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
