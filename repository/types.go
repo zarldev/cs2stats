@@ -13,6 +13,7 @@ type Match struct {
 	ScoreA          int
 	ScoreB          int
 	DemoHash        string
+	TeamAStartedAs  string
 	CreatedAt       time.Time
 	Players         []PlayerStats
 	Rounds          []Round
@@ -30,6 +31,7 @@ type MatchSummary struct {
 	TeamB           string
 	ScoreA          int
 	ScoreB          int
+	TeamAStartedAs  string
 	CreatedAt       time.Time
 }
 
@@ -92,10 +94,11 @@ type Round struct {
 
 // Clutch records a clutch attempt in a round.
 type Clutch struct {
-	RoundID   string
-	PlayerID  string
-	Opponents int
-	Success   bool
+	RoundID       string
+	PlayerID      string
+	PlayerSteamID string
+	Opponents     int
+	Success       bool
 }
 
 // EconomyRound holds economy data for one team in one round.
@@ -111,18 +114,20 @@ type EconomyRound struct {
 
 // KillEvent records a single kill with positional data.
 type KillEvent struct {
-	ID        string
-	RoundID   string
-	MatchID   string
-	RoundNum  int
-	Attacker  string // player ID
-	Victim    string // player ID
-	Weapon    string
-	Headshot  bool
-	AttackerX float64
-	AttackerY float64
-	AttackerZ float64
-	VictimX   float64
-	VictimY   float64
-	VictimZ   float64
+	ID              string
+	RoundID         string
+	MatchID         string
+	RoundNum        int
+	Attacker        string // player ID
+	Victim          string // player ID
+	AttackerSteamID string
+	VictimSteamID   string
+	Weapon          string
+	Headshot        bool
+	AttackerX       float64
+	AttackerY       float64
+	AttackerZ       float64
+	VictimX         float64
+	VictimY         float64
+	VictimZ         float64
 }

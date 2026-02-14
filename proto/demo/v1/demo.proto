@@ -62,6 +62,7 @@ message Match {
   int32 team_a_score = 7;
   int32 team_b_score = 8;
   string demo_file_hash = 9;
+  string team_a_started_as = 10;
 }
 
 message Player {

@@ -50,6 +50,7 @@ func matchDetailToProto(m service.MatchDetail) *demov1.Match {
 		TeamAScore:      int32(m.ScoreA),
 		TeamBScore:      int32(m.ScoreB),
 		DemoFileHash:    m.DemoHash,
+		TeamAStartedAs:  m.TeamAStartedAs,
 	}
 }
 
@@ -64,6 +65,7 @@ func matchSummaryToProto(m service.MatchSummary) *demov1.Match {
 		TeamAScore:      int32(m.ScoreA),
 		TeamBScore:      int32(m.ScoreB),
 		DemoFileHash:    m.DemoHash,
+		TeamAStartedAs:  m.TeamAStartedAs,
 	}
 }
 
@@ -185,7 +187,7 @@ func roundEventToProto(r service.RoundEvent) *statsv1.RoundEvent {
 	}
 	if r.Clutch != nil {
 		pe.Clutch = &statsv1.ClutchInfo{
-			PlayerSteamId:  r.Clutch.PlayerID,
+			PlayerSteamId:  r.Clutch.PlayerSteamID,
 			OpponentsAlive: int32(r.Clutch.Opponents),
 			Won:            r.Clutch.Success,
 		}
@@ -211,8 +213,8 @@ func parseWinMethod(s string) statsv1.WinMethod {
 func killPositionToProto(k service.KillPosition) *statsv1.KillPosition {
 	return &statsv1.KillPosition{
 		RoundNumber:     int32(k.RoundNumber),
-		AttackerSteamId: k.AttackerID,
-		VictimSteamId:   k.VictimID,
+		AttackerSteamId: k.AttackerSteamID,
+		VictimSteamId:   k.VictimSteamID,
 		Weapon:          k.Weapon,
 		IsHeadshot:      k.Headshot,
 		AttackerPos: &statsv1.Position{
