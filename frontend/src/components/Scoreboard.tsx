@@ -30,8 +30,8 @@ export function Scoreboard({ players, teamAName, teamBName }: ScoreboardProps) {
     return sortAsc ? diff : -diff;
   });
 
-  const teamA = sorted.filter((p) => p.team === teamAName);
-  const teamB = sorted.filter((p) => p.team === teamBName);
+  const teamA = sorted.filter((p) => p.team === "CT");
+  const teamB = sorted.filter((p) => p.team === "T");
 
   const columns: { key: SortKey; label: string; fmt?: (v: number) => string }[] = [
     { key: "kills", label: "K" },

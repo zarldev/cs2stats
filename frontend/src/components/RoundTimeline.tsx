@@ -1,6 +1,5 @@
 import { useState } from "react";
-import type { RoundEvent, Player } from "../api/types";
-import { WinMethod } from "../api/types";
+import type { RoundEvent, Player, WinMethod } from "../api/types";
 
 interface RoundTimelineProps {
   rounds: RoundEvent[];
@@ -11,13 +10,13 @@ interface RoundTimelineProps {
 
 function winMethodIcon(method: WinMethod): string {
   switch (method) {
-    case WinMethod.ELIMINATION:
+    case "WIN_METHOD_ELIMINATION":
       return "\u2620"; // skull
-    case WinMethod.BOMB_EXPLODED:
+    case "WIN_METHOD_BOMB_EXPLODED":
       return "\uD83D\uDCA3"; // bomb
-    case WinMethod.BOMB_DEFUSED:
+    case "WIN_METHOD_BOMB_DEFUSED":
       return "\uD83D\uDEE1"; // shield
-    case WinMethod.TIME_EXPIRED:
+    case "WIN_METHOD_TIME_EXPIRED":
       return "\u23F1"; // timer
     default:
       return "?";
@@ -26,13 +25,13 @@ function winMethodIcon(method: WinMethod): string {
 
 function winMethodLabel(method: WinMethod): string {
   switch (method) {
-    case WinMethod.ELIMINATION:
+    case "WIN_METHOD_ELIMINATION":
       return "Elimination";
-    case WinMethod.BOMB_EXPLODED:
+    case "WIN_METHOD_BOMB_EXPLODED":
       return "Bomb Exploded";
-    case WinMethod.BOMB_DEFUSED:
+    case "WIN_METHOD_BOMB_DEFUSED":
       return "Bomb Defused";
-    case WinMethod.TIME_EXPIRED:
+    case "WIN_METHOD_TIME_EXPIRED":
       return "Time Expired";
     default:
       return "Unknown";
@@ -51,11 +50,11 @@ export function RoundTimeline({
 }: RoundTimelineProps) {
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
 
-  // compute running score
+  // compute running score — winner is "CT" or "T"
   let scoreA = 0;
   let scoreB = 0;
   const scores = rounds.map((r) => {
-    if (r.winner === teamAName) scoreA++;
+    if (r.winner === "CT") scoreA++;
     else scoreB++;
     return { a: scoreA, b: scoreB };
   });
@@ -81,7 +80,7 @@ export function RoundTimeline({
       {/* round pills */}
       <div className="flex flex-wrap gap-1">
         {rounds.map((r, i) => {
-          const isTeamA = r.winner === teamAName;
+          const isTeamA = r.winner === "CT";
           const bg = isTeamA ? "bg-team-ct" : "bg-team-t";
           const isSelected = selectedRound === r.roundNumber;
 
@@ -121,7 +120,7 @@ export function RoundTimeline({
             Round {selected.roundNumber} &mdash;{" "}
             <span
               className={
-                selected.winner === teamAName ? "text-team-ct" : "text-team-t"
+                selected.winner === "CT" ? "text-team-ct" : "text-team-t"
               }
             >
               {selected.winner}
@@ -138,9 +137,12 @@ export function RoundTimeline({
                   <span className="text-slate-500">&rarr;</span>{" "}
                   {playerName(selected.firstKill.victimSteamId, players)}
                 </div>
-                <div className="text-xs text-slate-500">
-                  {selected.firstKill.weapon} at {selected.firstKill.roundTime.toFixed(1)}s
-                </div>
+                {selected.firstKill.weapon && (
+                  <div className="text-xs text-slate-500">
+                    {selected.firstKill.weapon}
+                    {selected.firstKill.roundTime > 0 && ` at ${selected.firstKill.roundTime.toFixed(1)}s`}
+                  </div>
+                )}
               </div>
             )}
 
@@ -166,9 +168,11 @@ export function RoundTimeline({
                   {playerName(selected.plant.planterSteamId, players)} &rarr;
                   Site {selected.plant.site}
                 </div>
-                <div className="text-xs text-slate-500">
-                  at {selected.plant.roundTime.toFixed(1)}s
-                </div>
+                {selected.plant.roundTime > 0 && (
+                  <div className="text-xs text-slate-500">
+                    at {selected.plant.roundTime.toFixed(1)}s
+                  </div>
+                )}
               </div>
             )}
 
@@ -178,9 +182,11 @@ export function RoundTimeline({
                 <div className="text-slate-200">
                   {playerName(selected.defuse.defuserSteamId, players)}
                 </div>
-                <div className="text-xs text-slate-500">
-                  at {selected.defuse.roundTime.toFixed(1)}s
-                </div>
+                {selected.defuse.roundTime > 0 && (
+                  <div className="text-xs text-slate-500">
+                    at {selected.defuse.roundTime.toFixed(1)}s
+                  </div>
+                )}
               </div>
             )}
           </div>

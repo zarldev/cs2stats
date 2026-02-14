@@ -9,8 +9,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import type { EconomyRound } from "../api/types";
-import { BuyType } from "../api/types";
+import type { EconomyRound, BuyType } from "../api/types";
 
 interface EconomyChartProps {
   rounds: EconomyRound[];
@@ -20,13 +19,13 @@ interface EconomyChartProps {
 
 function buyTypeLabel(bt: BuyType): string {
   switch (bt) {
-    case BuyType.ECO:
+    case "BUY_TYPE_ECO":
       return "Eco";
-    case BuyType.FORCE:
+    case "BUY_TYPE_FORCE":
       return "Force";
-    case BuyType.FULL:
+    case "BUY_TYPE_FULL":
       return "Full";
-    case BuyType.PISTOL:
+    case "BUY_TYPE_PISTOL":
       return "Pistol";
     default:
       return "";
@@ -35,13 +34,13 @@ function buyTypeLabel(bt: BuyType): string {
 
 function buyTypeBadgeColor(bt: BuyType): string {
   switch (bt) {
-    case BuyType.ECO:
+    case "BUY_TYPE_ECO":
       return "bg-red-800 text-red-200";
-    case BuyType.FORCE:
+    case "BUY_TYPE_FORCE":
       return "bg-yellow-800 text-yellow-200";
-    case BuyType.FULL:
+    case "BUY_TYPE_FULL":
       return "bg-green-800 text-green-200";
-    case BuyType.PISTOL:
+    case "BUY_TYPE_PISTOL":
       return "bg-purple-800 text-purple-200";
     default:
       return "bg-slate-700 text-slate-300";

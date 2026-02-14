@@ -79,7 +79,7 @@ export function KillMap({
   }, [players]);
 
   const teamColor = (steamId: string) =>
-    playerTeam.get(steamId) === teamAName ? CT_COLOR : T_COLOR;
+    playerTeam.get(steamId) === "CT" ? CT_COLOR : T_COLOR;
 
   const playerName = (steamId: string) =>
     players.find((p) => p.steamId === steamId)?.name ?? steamId;
