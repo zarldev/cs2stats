@@ -1,12 +1,64 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  createRouter,
+  createRoute,
+  createRootRoute,
+  RouterProvider,
+  Outlet,
+} from "@tanstack/react-router";
+import { Layout } from "./components/Layout";
+import { MatchList } from "./pages/MatchList";
+import { MatchDetail } from "./pages/MatchDetail";
+import "./index.css";
 
-function App() {
-  return <h1>CS2 Stats</h1>;
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+    },
+  },
+});
+
+// routes
+
+const rootRoute = createRootRoute({
+  component: () => (
+    <Layout>
+      <Outlet />
+    </Layout>
+  ),
+});
+
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: MatchList,
+});
+
+const matchRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/match/$matchId",
+  component: MatchDetail,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, matchRoute]);
+
+const router = createRouter({ routeTree });
+
+// type registration for useParams etc.
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
 }
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   </StrictMode>,
 );
