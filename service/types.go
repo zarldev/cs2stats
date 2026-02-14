@@ -13,6 +13,7 @@ type MatchDetail struct {
 	ScoreA          int
 	ScoreB          int
 	DemoHash        string
+	TeamAStartedAs  string
 }
 
 // MatchSummary is a lightweight listing entry.
@@ -26,6 +27,7 @@ type MatchSummary struct {
 	ScoreA          int
 	ScoreB          int
 	DemoHash        string
+	TeamAStartedAs  string
 	CreatedAt       time.Time
 }
 
@@ -88,9 +90,10 @@ type DefuseEvent struct {
 
 // ClutchEvent describes a clutch attempt.
 type ClutchEvent struct {
-	PlayerID  string
-	Opponents int
-	Success   bool
+	PlayerID      string
+	PlayerSteamID string
+	Opponents     int
+	Success       bool
 }
 
 // EconomyData holds economy info for one team in one round.
@@ -104,15 +107,17 @@ type EconomyData struct {
 
 // KillPosition holds a kill event with positional data.
 type KillPosition struct {
-	RoundNumber int
-	AttackerID  string
-	VictimID    string
-	Weapon      string
-	Headshot    bool
-	AttackerX   float64
-	AttackerY   float64
-	AttackerZ   float64
-	VictimX     float64
-	VictimY     float64
-	VictimZ     float64
+	RoundNumber     int
+	AttackerID      string
+	VictimID        string
+	AttackerSteamID string
+	VictimSteamID   string
+	Weapon          string
+	Headshot        bool
+	AttackerX       float64
+	AttackerY       float64
+	AttackerZ       float64
+	VictimX         float64
+	VictimY         float64
+	VictimZ         float64
 }

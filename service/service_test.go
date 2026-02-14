@@ -115,7 +115,7 @@ func seedViaRepo(t *testing.T, repo *repository.SQLite) string {
 		Date: now, DurationSeconds: 2100,
 		TeamA: "Astralis", TeamB: "Liquid",
 		ScoreA: 16, ScoreB: 14,
-		DemoHash: "seed-hash-123", CreatedAt: now,
+		DemoHash: "seed-hash-123", TeamAStartedAs: "CT", CreatedAt: now,
 		Players: []repository.PlayerStats{
 			{
 				PlayerID: "pid1", SteamID: "76561198001", Name: "device",
@@ -139,7 +139,7 @@ func seedViaRepo(t *testing.T, repo *repository.SQLite) string {
 				ID: "rd2", Number: 2, WinnerTeam: "T", WinMethod: "BombExploded",
 				FirstKillPlayerID: "pid2", FirstDeathPlayerID: "pid1",
 				Clutch: &repository.Clutch{
-					RoundID: "rd2", PlayerID: "pid2", Opponents: 3, Success: false,
+					RoundID: "rd2", PlayerID: "pid2", PlayerSteamID: "76561198002", Opponents: 3, Success: false,
 				},
 			},
 		},
@@ -152,6 +152,7 @@ func seedViaRepo(t *testing.T, repo *repository.SQLite) string {
 		KillEvents: []repository.KillEvent{
 			{
 				ID: "ke1", RoundID: "rd1", Attacker: "pid1", Victim: "pid2",
+				AttackerSteamID: "76561198001", VictimSteamID: "76561198002",
 				Weapon: "M4A4", Headshot: true,
 				AttackerX: 50, AttackerY: 60, AttackerZ: 5,
 				VictimX: 150, VictimY: 160, VictimZ: 5,

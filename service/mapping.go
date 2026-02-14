@@ -95,10 +95,11 @@ func mapParsedMatch(pm *parser.Match, demoHash string) repository.Match {
 
 		if r.Clutch != nil {
 			round.Clutch = &repository.Clutch{
-				RoundID:   roundID,
-				PlayerID:  playerIDs[steamIDStr(r.Clutch.PlayerSteamID)],
-				Opponents: r.Clutch.Opponents,
-				Success:   r.Clutch.Success,
+				RoundID:       roundID,
+				PlayerID:      playerIDs[steamIDStr(r.Clutch.PlayerSteamID)],
+				PlayerSteamID: steamIDStr(r.Clutch.PlayerSteamID),
+				Opponents:     r.Clutch.Opponents,
+				Success:       r.Clutch.Success,
 			}
 		}
 
@@ -129,19 +130,42 @@ func mapParsedMatch(pm *parser.Match, demoHash string) repository.Match {
 		// kill events
 		for _, k := range r.Kills {
 			kills = append(kills, repository.KillEvent{
-				ID:        uuid.New().String(),
-				RoundID:   roundID,
-				Attacker:  playerIDs[steamIDStr(k.AttackerSteamID)],
-				Victim:    playerIDs[steamIDStr(k.VictimSteamID)],
-				Weapon:    k.Weapon,
-				Headshot:  k.IsHeadshot,
-				AttackerX: k.AttackerPosition.X,
-				AttackerY: k.AttackerPosition.Y,
-				AttackerZ: k.AttackerPosition.Z,
-				VictimX:   k.VictimPosition.X,
-				VictimY:   k.VictimPosition.Y,
-				VictimZ:   k.VictimPosition.Z,
+				ID:              uuid.New().String(),
+				RoundID:         roundID,
+				Attacker:        playerIDs[steamIDStr(k.AttackerSteamID)],
+				Victim:          playerIDs[steamIDStr(k.VictimSteamID)],
+				AttackerSteamID: steamIDStr(k.AttackerSteamID),
+				VictimSteamID:   steamIDStr(k.VictimSteamID),
+				Weapon:          k.Weapon,
+				Headshot:        k.IsHeadshot,
+				AttackerX:       k.AttackerPosition.X,
+				AttackerY:       k.AttackerPosition.Y,
+				AttackerZ:       k.AttackerPosition.Z,
+				VictimX:         k.VictimPosition.X,
+				VictimY:         k.VictimPosition.Y,
+				VictimZ:         k.VictimPosition.Z,
 			})
+		}
+	}
+
+	// Bug 4: prefer per-round winner counts when they match total rounds
+	ctScore := pm.Teams[0].Score
+	tScore := pm.Teams[1].Score
+	if len(rounds) > 0 {
+		roundCT := 0
+		roundT := 0
+		for _, r := range rounds {
+			switch r.WinnerTeam {
+			case "CT":
+				roundCT++
+			case "T":
+				roundT++
+			}
+		}
+		// use round counts when they cover all rounds (i.e. sum equals total rounds played)
+		if roundCT+roundT == len(rounds) && roundCT+roundT == ctScore+tScore {
+			ctScore = roundCT
+			tScore = roundT
 		}
 	}
 
@@ -152,9 +176,10 @@ func mapParsedMatch(pm *parser.Match, demoHash string) repository.Match {
 		DurationSeconds: int(pm.Duration.Seconds()),
 		TeamA:           pm.Teams[0].Name,
 		TeamB:           pm.Teams[1].Name,
-		ScoreA:          pm.Teams[0].Score,
-		ScoreB:          pm.Teams[1].Score,
+		ScoreA:          ctScore,
+		ScoreB:          tScore,
 		DemoHash:        demoHash,
+		TeamAStartedAs:  pm.Teams[0].StartedAs.String(),
 		CreatedAt:       now,
 		Players:         players,
 		Rounds:          rounds,
@@ -179,6 +204,7 @@ func mapRepoMatchToDetail(m repository.Match) MatchDetail {
 		ScoreA:          m.ScoreA,
 		ScoreB:          m.ScoreB,
 		DemoHash:        m.DemoHash,
+		TeamAStartedAs:  m.TeamAStartedAs,
 	}
 }
 
@@ -195,6 +221,7 @@ func mapRepoSummaries(ms []repository.MatchSummary) []MatchSummary {
 			TeamB:           m.TeamB,
 			ScoreA:          m.ScoreA,
 			ScoreB:          m.ScoreB,
+			TeamAStartedAs:  m.TeamAStartedAs,
 			CreatedAt:       m.CreatedAt,
 		}
 	}
@@ -254,9 +281,10 @@ func mapRepoRounds(rs []repository.Round) []RoundEvent {
 		}
 		if r.Clutch != nil {
 			out[i].Clutch = &ClutchEvent{
-				PlayerID:  r.Clutch.PlayerID,
-				Opponents: r.Clutch.Opponents,
-				Success:   r.Clutch.Success,
+				PlayerID:      r.Clutch.PlayerID,
+				PlayerSteamID: r.Clutch.PlayerSteamID,
+				Opponents:     r.Clutch.Opponents,
+				Success:       r.Clutch.Success,
 			}
 		}
 	}
@@ -283,17 +311,19 @@ func mapRepoKills(ks []repository.KillEvent) []KillPosition {
 	out := make([]KillPosition, len(ks))
 	for i, k := range ks {
 		out[i] = KillPosition{
-			RoundNumber: k.RoundNum,
-			AttackerID:  k.Attacker,
-			VictimID:    k.Victim,
-			Weapon:      k.Weapon,
-			Headshot:    k.Headshot,
-			AttackerX:   k.AttackerX,
-			AttackerY:   k.AttackerY,
-			AttackerZ:   k.AttackerZ,
-			VictimX:     k.VictimX,
-			VictimY:     k.VictimY,
-			VictimZ:     k.VictimZ,
+			RoundNumber:     k.RoundNum,
+			AttackerID:      k.Attacker,
+			VictimID:        k.Victim,
+			AttackerSteamID: k.AttackerSteamID,
+			VictimSteamID:   k.VictimSteamID,
+			Weapon:          k.Weapon,
+			Headshot:        k.Headshot,
+			AttackerX:       k.AttackerX,
+			AttackerY:       k.AttackerY,
+			AttackerZ:       k.AttackerZ,
+			VictimX:         k.VictimX,
+			VictimY:         k.VictimY,
+			VictimZ:         k.VictimZ,
 		}
 	}
 	return out

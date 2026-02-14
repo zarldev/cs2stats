@@ -83,6 +83,7 @@ func (s *SQLite) migrate() error {
 	all := []migration{
 		{1, "migrations/001_initial.sql"},
 		{2, "migrations/002_round_first_kill_details.sql"},
+		{3, "migrations/003_kill_steam_ids_and_team_identity.sql"},
 	}
 
 	for _, m := range all {
@@ -114,10 +115,10 @@ func (s *SQLite) StoreMatch(ctx context.Context, m Match) (string, error) {
 
 	// insert match
 	_, err = tx.ExecContext(ctx,
-		`INSERT INTO matches (id, map_name, date, duration_seconds, team_a, team_b, score_a, score_b, demo_hash, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO matches (id, map_name, date, duration_seconds, team_a, team_b, score_a, score_b, demo_hash, team_a_started_as, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		m.ID, m.MapName, m.Date.Format(time.RFC3339), m.DurationSeconds,
-		m.TeamA, m.TeamB, m.ScoreA, m.ScoreB, m.DemoHash, m.CreatedAt.Format(time.RFC3339Nano),
+		m.TeamA, m.TeamB, m.ScoreA, m.ScoreB, m.DemoHash, m.TeamAStartedAs, m.CreatedAt.Format(time.RFC3339Nano),
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint") && strings.Contains(err.Error(), "demo_hash") {
@@ -179,8 +180,8 @@ func (s *SQLite) StoreMatch(ctx context.Context, m Match) (string, error) {
 
 		if r.Clutch != nil {
 			_, err = tx.ExecContext(ctx,
-				`INSERT INTO clutches (round_id, player_id, opponents, success) VALUES (?, ?, ?, ?)`,
-				r.ID, r.Clutch.PlayerID, r.Clutch.Opponents, boolToInt(r.Clutch.Success),
+				`INSERT INTO clutches (round_id, player_id, player_steam_id, opponents, success) VALUES (?, ?, ?, ?, ?)`,
+				r.ID, r.Clutch.PlayerID, nullString(r.Clutch.PlayerSteamID), r.Clutch.Opponents, boolToInt(r.Clutch.Success),
 			)
 			if err != nil {
 				return "", fmt.Errorf("insert clutch round %d: %w", r.Number, err)
@@ -202,9 +203,10 @@ func (s *SQLite) StoreMatch(ctx context.Context, m Match) (string, error) {
 	// insert kill events
 	for _, ke := range m.KillEvents {
 		_, err = tx.ExecContext(ctx,
-			`INSERT INTO kill_events (id, round_id, attacker_id, victim_id, weapon, headshot, attacker_x, attacker_y, attacker_z, victim_x, victim_y, victim_z)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO kill_events (id, round_id, attacker_id, victim_id, attacker_steam_id, victim_steam_id, weapon, headshot, attacker_x, attacker_y, attacker_z, victim_x, victim_y, victim_z)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			ke.ID, ke.RoundID, nullString(ke.Attacker), nullString(ke.Victim),
+			nullString(ke.AttackerSteamID), nullString(ke.VictimSteamID),
 			ke.Weapon, boolToInt(ke.Headshot),
 			ke.AttackerX, ke.AttackerY, ke.AttackerZ,
 			ke.VictimX, ke.VictimY, ke.VictimZ,
@@ -225,10 +227,10 @@ func (s *SQLite) GetMatch(ctx context.Context, id string) (Match, error) {
 	var m Match
 	var dateStr, createdStr string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, map_name, date, duration_seconds, team_a, team_b, score_a, score_b, demo_hash, created_at
+		`SELECT id, map_name, date, duration_seconds, team_a, team_b, score_a, score_b, demo_hash, COALESCE(team_a_started_as, 'CT'), created_at
 		 FROM matches WHERE id = ?`, id,
 	).Scan(&m.ID, &m.MapName, &dateStr, &m.DurationSeconds, &m.TeamA, &m.TeamB,
-		&m.ScoreA, &m.ScoreB, &m.DemoHash, &createdStr)
+		&m.ScoreA, &m.ScoreB, &m.DemoHash, &m.TeamAStartedAs, &createdStr)
 	if err == sql.ErrNoRows {
 		return Match{}, ErrNotFound
 	}
@@ -290,7 +292,7 @@ func (s *SQLite) ListMatches(ctx context.Context, filter MatchFilter) ([]MatchSu
 	}
 
 	query := fmt.Sprintf(
-		`SELECT id, map_name, date, duration_seconds, team_a, team_b, score_a, score_b, created_at
+		`SELECT id, map_name, date, duration_seconds, team_a, team_b, score_a, score_b, COALESCE(team_a_started_as, 'CT'), created_at
 		 FROM matches m %s ORDER BY m.created_at DESC, m.id DESC LIMIT ?`, where,
 	)
 	args = append(args, limit)
@@ -306,7 +308,7 @@ func (s *SQLite) ListMatches(ctx context.Context, filter MatchFilter) ([]MatchSu
 		var ms MatchSummary
 		var dateStr, createdStr string
 		if err := rows.Scan(&ms.ID, &ms.MapName, &dateStr, &ms.DurationSeconds,
-			&ms.TeamA, &ms.TeamB, &ms.ScoreA, &ms.ScoreB, &createdStr); err != nil {
+			&ms.TeamA, &ms.TeamB, &ms.ScoreA, &ms.ScoreB, &ms.TeamAStartedAs, &createdStr); err != nil {
 			return nil, fmt.Errorf("scan match summary: %w", err)
 		}
 		ms.Date, _ = time.Parse(time.RFC3339, dateStr)
@@ -384,9 +386,9 @@ func (s *SQLite) GetRounds(ctx context.Context, matchID string) ([]Round, error)
 		var c Clutch
 		var success int
 		err := s.db.QueryRowContext(ctx,
-			`SELECT round_id, player_id, opponents, success FROM clutches WHERE round_id = ?`,
+			`SELECT round_id, player_id, COALESCE(player_steam_id, ''), opponents, success FROM clutches WHERE round_id = ?`,
 			rounds[i].ID,
-		).Scan(&c.RoundID, &c.PlayerID, &c.Opponents, &success)
+		).Scan(&c.RoundID, &c.PlayerID, &c.PlayerSteamID, &c.Opponents, &success)
 		if err == sql.ErrNoRows {
 			continue
 		}
@@ -429,6 +431,7 @@ func (s *SQLite) GetKillPositions(ctx context.Context, matchID string) ([]KillEv
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT ke.id, ke.round_id, r.match_id, r.number,
 		        COALESCE(ke.attacker_id, ''), COALESCE(ke.victim_id, ''),
+		        COALESCE(ke.attacker_steam_id, ''), COALESCE(ke.victim_steam_id, ''),
 		        ke.weapon, ke.headshot,
 		        ke.attacker_x, ke.attacker_y, ke.attacker_z,
 		        ke.victim_x, ke.victim_y, ke.victim_z
@@ -447,7 +450,8 @@ func (s *SQLite) GetKillPositions(ctx context.Context, matchID string) ([]KillEv
 		var ke KillEvent
 		var hs int
 		if err := rows.Scan(&ke.ID, &ke.RoundID, &ke.MatchID, &ke.RoundNum,
-			&ke.Attacker, &ke.Victim, &ke.Weapon, &hs,
+			&ke.Attacker, &ke.Victim, &ke.AttackerSteamID, &ke.VictimSteamID,
+			&ke.Weapon, &hs,
 			&ke.AttackerX, &ke.AttackerY, &ke.AttackerZ,
 			&ke.VictimX, &ke.VictimY, &ke.VictimZ); err != nil {
 			return nil, fmt.Errorf("scan kill event: %w", err)

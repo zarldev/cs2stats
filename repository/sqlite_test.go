@@ -29,6 +29,7 @@ func seedMatch(t *testing.T, repo *SQLite) Match {
 		ScoreA:          16,
 		ScoreB:          12,
 		DemoHash:        "abc123hash",
+		TeamAStartedAs:  "CT",
 		CreatedAt:       now,
 		Players: []PlayerStats{
 			{
@@ -59,7 +60,7 @@ func seedMatch(t *testing.T, repo *SQLite) Match {
 				BombPlantSteamID: "76561198002", BombPlantSite: "B",
 				BombPlantRoundTime: 35.2,
 				Clutch: &Clutch{
-					RoundID: "r2", PlayerID: "p2", Opponents: 2, Success: true,
+					RoundID: "r2", PlayerID: "p2", PlayerSteamID: "76561198002", Opponents: 2, Success: true,
 				},
 			},
 		},
@@ -72,12 +73,14 @@ func seedMatch(t *testing.T, repo *SQLite) Match {
 		KillEvents: []KillEvent{
 			{
 				ID: "k1", RoundID: "r1", Attacker: "p1", Victim: "p2",
+				AttackerSteamID: "76561198001", VictimSteamID: "76561198002",
 				Weapon: "AK-47", Headshot: true,
 				AttackerX: 100.5, AttackerY: 200.3, AttackerZ: 10.0,
 				VictimX: 300.1, VictimY: 400.2, VictimZ: 10.0,
 			},
 			{
 				ID: "k2", RoundID: "r2", Attacker: "p2", Victim: "p1",
+				AttackerSteamID: "76561198002", VictimSteamID: "76561198001",
 				Weapon: "AWP", Headshot: false,
 				AttackerX: 150.0, AttackerY: 250.0, AttackerZ: 12.0,
 				VictimX: 350.0, VictimY: 450.0, VictimZ: 12.0,
@@ -124,6 +127,9 @@ func TestStoreAndGetMatch(t *testing.T) {
 	}
 	if got.DemoHash != want.DemoHash {
 		t.Errorf("DemoHash: got %s, want %s", got.DemoHash, want.DemoHash)
+	}
+	if got.TeamAStartedAs != "CT" {
+		t.Errorf("TeamAStartedAs: got %s, want CT", got.TeamAStartedAs)
 	}
 }
 
@@ -321,6 +327,9 @@ func TestGetRounds(t *testing.T) {
 	if r2.Clutch.Opponents != 2 {
 		t.Errorf("clutch opponents: got %d, want 2", r2.Clutch.Opponents)
 	}
+	if r2.Clutch.PlayerSteamID != "76561198002" {
+		t.Errorf("clutch player steam ID: got %s, want 76561198002", r2.Clutch.PlayerSteamID)
+	}
 	if r2.BombPlantSteamID != "76561198002" {
 		t.Errorf("round 2 bomb plant steam ID: got %s, want 76561198002", r2.BombPlantSteamID)
 	}
@@ -381,10 +390,22 @@ func TestGetKillPositions(t *testing.T) {
 	if k1.AttackerX != 100.5 {
 		t.Errorf("kill 1 attacker X: got %f, want 100.5", k1.AttackerX)
 	}
+	if k1.AttackerSteamID != "76561198001" {
+		t.Errorf("kill 1 attacker steam ID: got %s, want 76561198001", k1.AttackerSteamID)
+	}
+	if k1.VictimSteamID != "76561198002" {
+		t.Errorf("kill 1 victim steam ID: got %s, want 76561198002", k1.VictimSteamID)
+	}
 
 	k2 := kills[1]
 	if k2.Headshot {
 		t.Error("kill 2 should not be headshot")
+	}
+	if k2.AttackerSteamID != "76561198002" {
+		t.Errorf("kill 2 attacker steam ID: got %s, want 76561198002", k2.AttackerSteamID)
+	}
+	if k2.VictimSteamID != "76561198001" {
+		t.Errorf("kill 2 victim steam ID: got %s, want 76561198001", k2.VictimSteamID)
 	}
 }
 
