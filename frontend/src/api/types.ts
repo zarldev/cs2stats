@@ -74,13 +74,13 @@ export interface GetPlayerStatsResponse {
   players: PlayerStats[];
 }
 
-export enum BuyType {
-  UNSPECIFIED = 0,
-  ECO = 1,
-  FORCE = 2,
-  FULL = 3,
-  PISTOL = 4,
-}
+// proto JSON serializes enums as strings
+export type BuyType =
+  | "BUY_TYPE_UNSPECIFIED"
+  | "BUY_TYPE_ECO"
+  | "BUY_TYPE_FORCE"
+  | "BUY_TYPE_FULL"
+  | "BUY_TYPE_PISTOL";
 
 export interface EconomyRound {
   roundNumber: number;
@@ -96,13 +96,13 @@ export interface GetEconomyStatsResponse {
   rounds: EconomyRound[];
 }
 
-export enum WinMethod {
-  UNSPECIFIED = 0,
-  ELIMINATION = 1,
-  BOMB_EXPLODED = 2,
-  BOMB_DEFUSED = 3,
-  TIME_EXPIRED = 4,
-}
+// proto JSON serializes enums as strings
+export type WinMethod =
+  | "WIN_METHOD_UNSPECIFIED"
+  | "WIN_METHOD_ELIMINATION"
+  | "WIN_METHOD_BOMB_EXPLODED"
+  | "WIN_METHOD_BOMB_DEFUSED"
+  | "WIN_METHOD_TIME_EXPIRED";
 
 export interface FirstKill {
   attackerSteamId: string;

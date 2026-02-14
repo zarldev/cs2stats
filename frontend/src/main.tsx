@@ -9,8 +9,10 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 import { Layout } from "./components/Layout";
+import { Dashboard } from "./pages/Dashboard";
 import { MatchList } from "./pages/MatchList";
 import { MatchDetail } from "./pages/MatchDetail";
+import { Toaster } from "@/components/ui/sonner";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -32,19 +34,29 @@ const rootRoute = createRootRoute({
   ),
 });
 
-const indexRoute = createRoute({
+const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
+  component: Dashboard,
+});
+
+const matchListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/matches",
   component: MatchList,
 });
 
-const matchRoute = createRoute({
+const matchDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/match/$matchId",
+  path: "/matches/$matchId",
   component: MatchDetail,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, matchRoute]);
+const routeTree = rootRoute.addChildren([
+  dashboardRoute,
+  matchListRoute,
+  matchDetailRoute,
+]);
 
 const router = createRouter({ routeTree });
 
@@ -59,6 +71,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <Toaster />
     </QueryClientProvider>
   </StrictMode>,
 );

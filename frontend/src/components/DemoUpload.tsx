@@ -1,27 +1,69 @@
 import { useState, useCallback, useRef, type DragEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { Upload, FileUp, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useUploadDemo } from "../api/queries";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 interface DemoUploadProps {
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function DemoUpload({ onClose }: DemoUploadProps) {
+export function DemoUpload({ open, onOpenChange }: DemoUploadProps) {
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const upload = useUploadDemo();
+  const [progress, setProgress] = useState(0);
 
   const handleFile = useCallback(
     (file: File) => {
+      setProgress(0);
+      // simulate progress while uploading
+      const interval = setInterval(() => {
+        setProgress((p) => Math.min(p + Math.random() * 15, 90));
+      }, 300);
+
       upload.mutate(file, {
         onSuccess: (data) => {
-          onClose();
-          void navigate({ to: "/match/$matchId", params: { matchId: data.matchId } });
+          clearInterval(interval);
+          setProgress(100);
+          toast.success("Demo uploaded", {
+            description: `${file.name} parsed successfully`,
+            action: {
+              label: "View Match",
+              onClick: () => {
+                void navigate({
+                  to: "/matches/$matchId",
+                  params: { matchId: data.matchId },
+                });
+              },
+            },
+          });
+          setTimeout(() => {
+            onOpenChange(false);
+            setProgress(0);
+            upload.reset();
+          }, 800);
+        },
+        onError: (err) => {
+          clearInterval(interval);
+          setProgress(0);
+          toast.error("Upload error", {
+            description: err.message,
+          });
         },
       });
     },
-    [upload, onClose, navigate],
+    [upload, onOpenChange, navigate],
   );
 
   const onDrop = useCallback(
@@ -44,28 +86,26 @@ export function DemoUpload({ onClose }: DemoUploadProps) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="w-full max-w-md rounded-lg bg-slate-900 p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-100">Upload Demo</h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-200"
-          >
-            &times;
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Upload Demo</DialogTitle>
+          <DialogDescription>
+            Upload a CS2 .dem file to parse match data
+          </DialogDescription>
+        </DialogHeader>
 
         <div
           onDrop={onDrop}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onClick={() => fileRef.current?.click()}
-          className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+          className={cn(
+            "cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors",
             dragging
               ? "border-team-ct bg-team-ct/10"
-              : "border-slate-700 hover:border-slate-500"
-          }`}
+              : "border-border hover:border-muted-foreground/50",
+          )}
         >
           <input
             ref={fileRef}
@@ -78,25 +118,44 @@ export function DemoUpload({ onClose }: DemoUploadProps) {
             }}
           />
           {upload.isPending ? (
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-600 border-t-team-ct" />
-              <p className="text-sm text-slate-400">Uploading and parsing...</p>
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-team-ct" />
+              <p className="text-sm text-muted-foreground">
+                Uploading and parsing...
+              </p>
+              {/* progress bar */}
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-team-ct transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
           ) : (
-            <div>
-              <p className="text-sm text-slate-400">
-                Drag & drop a .dem file here, or click to browse
-              </p>
+            <div className="flex flex-col items-center gap-3">
+              {dragging ? (
+                <FileUp className="h-8 w-8 text-team-ct" />
+              ) : (
+                <Upload className="h-8 w-8 text-muted-foreground" />
+              )}
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Drag & drop a .dem file here
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  or click to browse
+                </p>
+              </div>
             </div>
           )}
         </div>
 
         {upload.isError && (
-          <p className="mt-3 text-sm text-red-400">
-            Upload failed: {upload.error.message}
+          <p className="text-sm text-destructive">
+            {upload.error.message}
           </p>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

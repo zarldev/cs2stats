@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useListMatches } from "../api/queries";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { MatchTableSkeleton } from "@/components/skeletons";
 
 const MAPS = [
   "de_dust2",
@@ -45,17 +50,18 @@ export function MatchList() {
     });
 
   const matches = data?.pages.flatMap((p) => p.matches) ?? [];
+  const hasFilters = mapFilter || playerSearch || dateFrom || dateTo;
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-slate-100">Matches</h1>
+      <h1 className="mb-6 text-2xl font-bold">Matches</h1>
 
       {/* filters */}
       <div className="mb-6 flex flex-wrap gap-3">
-        <select
+        <Select
           value={mapFilter}
           onChange={(e) => setMapFilter(e.target.value)}
-          className="rounded bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-team-ct"
+          className="w-auto"
         >
           <option value="">All Maps</option>
           {MAPS.map((m) => (
@@ -63,84 +69,82 @@ export function MatchList() {
               {m}
             </option>
           ))}
-        </select>
+        </Select>
 
-        <input
+        <Input
           type="text"
           placeholder="Player Steam ID..."
           value={playerSearch}
           onChange={(e) => setPlayerSearch(e.target.value)}
-          className="rounded bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-team-ct"
+          className="w-auto max-w-[200px]"
         />
 
-        <input
+        <Input
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="rounded bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-team-ct"
+          className="w-auto"
         />
 
-        <input
+        <Input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="rounded bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-team-ct"
+          className="w-auto"
         />
 
-        {(mapFilter || playerSearch || dateFrom || dateTo) && (
-          <button
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setMapFilter("");
               setPlayerSearch("");
               setDateFrom("");
               setDateTo("");
             }}
-            className="rounded px-3 py-2 text-sm text-slate-400 hover:text-slate-200"
           >
             Clear
-          </button>
+          </Button>
         )}
       </div>
 
-      {/* loading/error states */}
-      {isLoading && (
-        <div className="flex items-center gap-2 py-8 text-slate-400">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-600 border-t-team-ct" />
-          Loading matches...
-        </div>
-      )}
+      {/* loading state */}
+      {isLoading && <MatchTableSkeleton />}
 
+      {/* error state */}
       {isError && (
-        <div className="rounded bg-red-900/30 p-4 text-sm text-red-300">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
           {error.message}
         </div>
       )}
 
-      {/* match table */}
+      {/* empty state */}
       {!isLoading && matches.length === 0 && (
-        <div className="py-8 text-center text-slate-500">
+        <div className="rounded-lg border border-border bg-card py-12 text-center text-muted-foreground">
           No matches found. Upload a demo to get started.
         </div>
       )}
 
+      {/* match table */}
       {matches.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-slate-800">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-700 bg-slate-900">
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                   Map
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                   Date
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                   Teams
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-slate-400">
+                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">
                   Score
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
                   Duration
                 </th>
               </tr>
@@ -149,31 +153,33 @@ export function MatchList() {
               {matches.map((m) => (
                 <tr
                   key={m.id}
-                  className="border-t border-slate-800 transition-colors hover:bg-slate-800/50"
+                  className="border-t border-border transition-colors hover:bg-muted/50"
                 >
                   <td className="px-4 py-3">
                     <Link
-                      to="/match/$matchId"
+                      to="/matches/$matchId"
                       params={{ matchId: m.id }}
-                      className="font-medium text-slate-200 hover:text-team-ct"
+                      className="font-medium text-foreground hover:text-team-ct transition-colors"
                     >
-                      {m.mapName}
+                      <Badge variant="secondary" className="font-mono text-xs">
+                        {m.mapName.replace("de_", "")}
+                      </Badge>
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-400">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
                     {formatDate(m.date)}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <span className="text-team-ct">{m.teamAName}</span>
-                    <span className="mx-2 text-slate-600">vs</span>
+                    <span className="mx-2 text-muted-foreground/50">vs</span>
                     <span className="text-team-t">{m.teamBName}</span>
                   </td>
                   <td className="px-4 py-3 text-center tabular-nums">
                     <span className="text-team-ct">{m.teamAScore}</span>
-                    <span className="mx-1 text-slate-600">:</span>
+                    <span className="mx-1 text-muted-foreground/50">:</span>
                     <span className="text-team-t">{m.teamBScore}</span>
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-slate-400 tabular-nums">
+                  <td className="px-4 py-3 text-right text-sm text-muted-foreground tabular-nums">
                     {formatDuration(m.durationSeconds)}
                   </td>
                 </tr>
@@ -186,13 +192,13 @@ export function MatchList() {
       {/* load more */}
       {hasNextPage && (
         <div className="mt-4 text-center">
-          <button
+          <Button
+            variant="outline"
             onClick={() => void fetchNextPage()}
             disabled={isFetchingNextPage}
-            className="rounded-md bg-slate-800 px-6 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-700 disabled:opacity-50"
           >
             {isFetchingNextPage ? "Loading..." : "Load More"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

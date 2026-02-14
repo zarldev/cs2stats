@@ -30,8 +30,8 @@ export function Scoreboard({ players, teamAName, teamBName }: ScoreboardProps) {
     return sortAsc ? diff : -diff;
   });
 
-  const teamA = sorted.filter((p) => p.team === teamAName);
-  const teamB = sorted.filter((p) => p.team === teamBName);
+  const teamA = sorted.filter((p) => p.team === "CT");
+  const teamB = sorted.filter((p) => p.team === "T");
 
   const columns: { key: SortKey; label: string; fmt?: (v: number) => string }[] = [
     { key: "kills", label: "K" },
@@ -47,7 +47,7 @@ export function Scoreboard({ players, teamAName, teamBName }: ScoreboardProps) {
     <th
       key={col.key}
       onClick={() => handleSort(col.key)}
-      className="cursor-pointer px-3 py-2 text-right text-xs font-medium text-slate-400 hover:text-slate-200"
+      className="cursor-pointer px-3 py-2 text-right text-xs font-medium text-muted-foreground hover:text-foreground"
     >
       {col.label}
       {sortKey === col.key && (
@@ -57,7 +57,7 @@ export function Scoreboard({ players, teamAName, teamBName }: ScoreboardProps) {
   );
 
   const playerRow = (p: PlayerStats, teamColor: string) => (
-    <tr key={p.steamId} className="border-t border-slate-800 hover:bg-slate-800/50">
+    <tr key={p.steamId} className="border-t border-border hover:bg-muted/50">
       <td className="px-3 py-2">
         <span className={teamColor}>{p.name}</span>
       </td>
@@ -76,8 +76,8 @@ export function Scoreboard({ players, teamAName, teamBName }: ScoreboardProps) {
       </div>
       <table className="w-full">
         <thead>
-          <tr className="border-b border-slate-700">
-            <th className="px-3 py-2 text-left text-xs font-medium text-slate-400">
+          <tr className="border-b border-border">
+            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
               Player
             </th>
             {columns.map(headerCell)}

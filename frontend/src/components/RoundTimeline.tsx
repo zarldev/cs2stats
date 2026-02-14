@@ -1,6 +1,5 @@
 import { useState } from "react";
-import type { RoundEvent, Player } from "../api/types";
-import { WinMethod } from "../api/types";
+import type { RoundEvent, Player, WinMethod } from "../api/types";
 
 interface RoundTimelineProps {
   rounds: RoundEvent[];
@@ -11,13 +10,13 @@ interface RoundTimelineProps {
 
 function winMethodIcon(method: WinMethod): string {
   switch (method) {
-    case WinMethod.ELIMINATION:
+    case "WIN_METHOD_ELIMINATION":
       return "\u2620"; // skull
-    case WinMethod.BOMB_EXPLODED:
+    case "WIN_METHOD_BOMB_EXPLODED":
       return "\uD83D\uDCA3"; // bomb
-    case WinMethod.BOMB_DEFUSED:
+    case "WIN_METHOD_BOMB_DEFUSED":
       return "\uD83D\uDEE1"; // shield
-    case WinMethod.TIME_EXPIRED:
+    case "WIN_METHOD_TIME_EXPIRED":
       return "\u23F1"; // timer
     default:
       return "?";
@@ -26,13 +25,13 @@ function winMethodIcon(method: WinMethod): string {
 
 function winMethodLabel(method: WinMethod): string {
   switch (method) {
-    case WinMethod.ELIMINATION:
+    case "WIN_METHOD_ELIMINATION":
       return "Elimination";
-    case WinMethod.BOMB_EXPLODED:
+    case "WIN_METHOD_BOMB_EXPLODED":
       return "Bomb Exploded";
-    case WinMethod.BOMB_DEFUSED:
+    case "WIN_METHOD_BOMB_DEFUSED":
       return "Bomb Defused";
-    case WinMethod.TIME_EXPIRED:
+    case "WIN_METHOD_TIME_EXPIRED":
       return "Time Expired";
     default:
       return "Unknown";
@@ -51,11 +50,11 @@ export function RoundTimeline({
 }: RoundTimelineProps) {
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
 
-  // compute running score
+  // compute running score -- winner is "CT" or "T"
   let scoreA = 0;
   let scoreB = 0;
   const scores = rounds.map((r) => {
-    if (r.winner === teamAName) scoreA++;
+    if (r.winner === "CT") scoreA++;
     else scoreB++;
     return { a: scoreA, b: scoreB };
   });
@@ -70,18 +69,18 @@ export function RoundTimeline({
       <div className="mb-4 flex items-center gap-4 text-sm">
         <span className="flex items-center gap-1">
           <span className="inline-block h-3 w-3 rounded-sm bg-team-ct" />
-          <span className="text-slate-300">{teamAName}</span>
+          <span className="text-muted-foreground">{teamAName}</span>
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-3 w-3 rounded-sm bg-team-t" />
-          <span className="text-slate-300">{teamBName}</span>
+          <span className="text-muted-foreground">{teamBName}</span>
         </span>
       </div>
 
       {/* round pills */}
       <div className="flex flex-wrap gap-1">
         {rounds.map((r, i) => {
-          const isTeamA = r.winner === teamAName;
+          const isTeamA = r.winner === "CT";
           const bg = isTeamA ? "bg-team-ct" : "bg-team-t";
           const isSelected = selectedRound === r.roundNumber;
 
@@ -94,11 +93,11 @@ export function RoundTimeline({
                 )
               }
               className={`flex h-10 w-10 flex-col items-center justify-center rounded text-xs font-medium transition-all ${bg} ${
-                isSelected ? "ring-2 ring-white ring-offset-2 ring-offset-slate-950" : "opacity-80 hover:opacity-100"
+                isSelected ? "ring-2 ring-white ring-offset-2 ring-offset-background" : "opacity-80 hover:opacity-100"
               }`}
               title={`R${r.roundNumber}: ${scores[i]?.a}-${scores[i]?.b} (${winMethodLabel(r.winMethod)})`}
             >
-              <span className="text-[10px] text-slate-950 font-bold">{r.roundNumber}</span>
+              <span className="text-[10px] text-background font-bold">{r.roundNumber}</span>
               <span className="text-[10px]">{winMethodIcon(r.winMethod)}</span>
             </button>
           );
@@ -106,7 +105,7 @@ export function RoundTimeline({
       </div>
 
       {/* score progression */}
-      <div className="mt-4 flex flex-wrap gap-1 text-xs text-slate-400">
+      <div className="mt-4 flex flex-wrap gap-1 text-xs text-muted-foreground">
         {scores.map((s, i) => (
           <span key={i} className="w-10 text-center">
             {s.a}-{s.b}
@@ -116,12 +115,12 @@ export function RoundTimeline({
 
       {/* round detail */}
       {selected && (
-        <div className="mt-6 rounded-lg bg-slate-800 p-4">
-          <h4 className="mb-3 font-semibold text-slate-200">
+        <div className="mt-6 rounded-lg bg-muted p-4">
+          <h4 className="mb-3 font-semibold">
             Round {selected.roundNumber} &mdash;{" "}
             <span
               className={
-                selected.winner === teamAName ? "text-team-ct" : "text-team-t"
+                selected.winner === "CT" ? "text-team-ct" : "text-team-t"
               }
             >
               {selected.winner}
@@ -131,23 +130,26 @@ export function RoundTimeline({
 
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             {selected.firstKill && (
-              <div className="rounded bg-slate-900 p-3">
-                <div className="text-xs text-slate-500">First Kill</div>
-                <div className="text-slate-200">
+              <div className="rounded bg-background p-3">
+                <div className="text-xs text-muted-foreground">First Kill</div>
+                <div>
                   {playerName(selected.firstKill.attackerSteamId, players)}{" "}
-                  <span className="text-slate-500">&rarr;</span>{" "}
+                  <span className="text-muted-foreground">&rarr;</span>{" "}
                   {playerName(selected.firstKill.victimSteamId, players)}
                 </div>
-                <div className="text-xs text-slate-500">
-                  {selected.firstKill.weapon} at {selected.firstKill.roundTime.toFixed(1)}s
-                </div>
+                {selected.firstKill.weapon && (
+                  <div className="text-xs text-muted-foreground">
+                    {selected.firstKill.weapon}
+                    {selected.firstKill.roundTime > 0 && ` at ${selected.firstKill.roundTime.toFixed(1)}s`}
+                  </div>
+                )}
               </div>
             )}
 
             {selected.clutch && (
-              <div className="rounded bg-slate-900 p-3">
-                <div className="text-xs text-slate-500">Clutch</div>
-                <div className="text-slate-200">
+              <div className="rounded bg-background p-3">
+                <div className="text-xs text-muted-foreground">Clutch</div>
+                <div>
                   {playerName(selected.clutch.playerSteamId, players)} 1v
                   {selected.clutch.opponentsAlive}
                 </div>
@@ -160,27 +162,31 @@ export function RoundTimeline({
             )}
 
             {selected.plant && (
-              <div className="rounded bg-slate-900 p-3">
-                <div className="text-xs text-slate-500">Bomb Plant</div>
-                <div className="text-slate-200">
+              <div className="rounded bg-background p-3">
+                <div className="text-xs text-muted-foreground">Bomb Plant</div>
+                <div>
                   {playerName(selected.plant.planterSteamId, players)} &rarr;
                   Site {selected.plant.site}
                 </div>
-                <div className="text-xs text-slate-500">
-                  at {selected.plant.roundTime.toFixed(1)}s
-                </div>
+                {selected.plant.roundTime > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    at {selected.plant.roundTime.toFixed(1)}s
+                  </div>
+                )}
               </div>
             )}
 
             {selected.defuse && (
-              <div className="rounded bg-slate-900 p-3">
-                <div className="text-xs text-slate-500">Bomb Defuse</div>
-                <div className="text-slate-200">
+              <div className="rounded bg-background p-3">
+                <div className="text-xs text-muted-foreground">Bomb Defuse</div>
+                <div>
                   {playerName(selected.defuse.defuserSteamId, players)}
                 </div>
-                <div className="text-xs text-slate-500">
-                  at {selected.defuse.roundTime.toFixed(1)}s
-                </div>
+                {selected.defuse.roundTime > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    at {selected.defuse.roundTime.toFixed(1)}s
+                  </div>
+                )}
               </div>
             )}
           </div>
