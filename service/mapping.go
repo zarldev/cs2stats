@@ -58,19 +58,39 @@ func mapParsedMatch(pm *parser.Match, demoHash string) repository.Match {
 
 		firstKillPID := ""
 		firstDeathPID := ""
+		firstKillSteamID := ""
+		firstDeathSteamID := ""
+		firstKillWeapon := ""
+		var firstKillRoundTime float64
 		if r.FirstKill != nil {
 			firstKillPID = playerIDs[steamIDStr(r.FirstKill.AttackerSteamID)]
 			firstDeathPID = playerIDs[steamIDStr(r.FirstKill.VictimSteamID)]
+			firstKillSteamID = steamIDStr(r.FirstKill.AttackerSteamID)
+			firstDeathSteamID = steamIDStr(r.FirstKill.VictimSteamID)
+			firstKillWeapon = r.FirstKill.Weapon
+			firstKillRoundTime = (r.FirstKill.Time - r.StartTime).Seconds()
 		}
 
 		round := repository.Round{
-			ID:                 roundID,
-			MatchID:            matchID,
-			Number:             r.Number,
-			WinnerTeam:         r.Winner.String(),
-			WinMethod:          r.WinMethod.String(),
-			FirstKillPlayerID:  firstKillPID,
-			FirstDeathPlayerID: firstDeathPID,
+			ID:                  roundID,
+			MatchID:             matchID,
+			Number:              r.Number,
+			WinnerTeam:          r.Winner.String(),
+			WinMethod:           r.WinMethod.String(),
+			FirstKillPlayerID:   firstKillPID,
+			FirstDeathPlayerID:  firstDeathPID,
+			FirstKillSteamID:    firstKillSteamID,
+			FirstDeathSteamID:   firstDeathSteamID,
+			FirstKillWeapon:     firstKillWeapon,
+			FirstKillRoundTime:  firstKillRoundTime,
+		}
+
+		if r.BombPlant != nil {
+			round.BombPlantSteamID = steamIDStr(r.BombPlant.PlayerSteamID)
+			round.BombPlantSite = r.BombPlant.Site
+		}
+		if r.BombDefuse != nil {
+			round.BombDefuseSteamID = steamIDStr(r.BombDefuse.PlayerSteamID)
 		}
 
 		if r.Clutch != nil {
@@ -214,6 +234,23 @@ func mapRepoRounds(rs []repository.Round) []RoundEvent {
 			WinMethod:          r.WinMethod,
 			FirstKillPlayerID:  r.FirstKillPlayerID,
 			FirstDeathPlayerID: r.FirstDeathPlayerID,
+			FirstKillSteamID:   r.FirstKillSteamID,
+			FirstDeathSteamID:  r.FirstDeathSteamID,
+			FirstKillWeapon:    r.FirstKillWeapon,
+			FirstKillRoundTime: r.FirstKillRoundTime,
+		}
+		if r.BombPlantSteamID != "" {
+			out[i].Plant = &PlantEvent{
+				PlanterSteamID: r.BombPlantSteamID,
+				Site:           r.BombPlantSite,
+				RoundTime:      r.BombPlantRoundTime,
+			}
+		}
+		if r.BombDefuseSteamID != "" {
+			out[i].Defuse = &DefuseEvent{
+				DefuserSteamID: r.BombDefuseSteamID,
+				RoundTime:      r.BombDefuseRoundTime,
+			}
 		}
 		if r.Clutch != nil {
 			out[i].Clutch = &ClutchEvent{

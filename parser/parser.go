@@ -425,6 +425,7 @@ func (s *parseState) onRoundEnd(e events.RoundEnd) {
 		Clutch:     clutch,
 		CTEconomy:  s.ctEconomy,
 		TEconomy:   s.tEconomy,
+		StartTime:  s.roundStart,
 		Duration:   duration,
 		BombPlant:  s.roundBomb,
 		BombDefuse: s.roundDefuse,

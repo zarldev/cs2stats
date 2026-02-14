@@ -78,6 +78,15 @@ type Round struct {
 	WinMethod          string
 	FirstKillPlayerID  string
 	FirstDeathPlayerID string
+	FirstKillSteamID   string
+	FirstDeathSteamID  string
+	FirstKillWeapon    string
+	FirstKillRoundTime float64
+	BombPlantSteamID   string
+	BombPlantSite      string
+	BombPlantRoundTime float64
+	BombDefuseSteamID  string
+	BombDefuseRoundTime float64
 	Clutch             *Clutch
 }
 
