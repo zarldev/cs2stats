@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package demo.v1;
+
+option go_package = "github.com/zarldev/cs2stats/transport/grpc/gen/demo/v1;demov1";
+
+import "google/protobuf/timestamp.proto";
+
+// DemoService handles demo file uploads and match queries.
+service DemoService {
+  // UploadDemo accepts a demo file and returns the parsed match ID.
+  rpc UploadDemo(UploadDemoRequest) returns (UploadDemoResponse);
+
+  // ListMatches returns a paginated list of parsed matches.
+  rpc ListMatches(ListMatchesRequest) returns (ListMatchesResponse);
+
+  // GetMatch returns full match details by ID.
+  rpc GetMatch(GetMatchRequest) returns (GetMatchResponse);
+}
+
+message UploadDemoRequest {
+  bytes demo_file = 1;
+  string file_name = 2;
+}
+
+message UploadDemoResponse {
+  string match_id = 1;
+}
+
+message ListMatchesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+
+  // optional filters
+  string map_name = 3;
+  string player_steam_id = 4;
+  google.protobuf.Timestamp date_from = 5;
+  google.protobuf.Timestamp date_to = 6;
+}
+
+message ListMatchesResponse {
+  repeated Match matches = 1;
+  string next_page_token = 2;
+}
+
+message GetMatchRequest {
+  string match_id = 1;
+}
+
+message GetMatchResponse {
+  Match match = 1;
+  repeated Player players = 2;
+}
+
+message Match {
+  string id = 1;
+  string map_name = 2;
+  google.protobuf.Timestamp date = 3;
+  int32 duration_seconds = 4;
+  string team_a_name = 5;
+  string team_b_name = 6;
+  int32 team_a_score = 7;
+  int32 team_b_score = 8;
+  string demo_file_hash = 9;
+}
+
+message Player {
+  string steam_id = 1;
+  string name = 2;
+  string team = 3;
+}
