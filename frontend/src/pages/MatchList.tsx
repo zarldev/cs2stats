@@ -354,6 +354,24 @@ export function MatchList() {
                         <span className={`text-team-t ${bWon ? "font-bold" : ""}`}>
                           {m.teamBScore}
                         </span>
+                        {(() => {
+                          const total = m.teamAScore + m.teamBScore;
+                          const diff = Math.abs(m.teamAScore - m.teamBScore);
+                          const tags: { label: string; cls: string }[] = [];
+                          if (total > 30) tags.push({ label: "OT", cls: "bg-purple-500/20 text-purple-400 border-purple-500/30" });
+                          if (m.teamAScore === 0 || m.teamBScore === 0) tags.push({ label: `${Math.max(m.teamAScore, m.teamBScore)}-0`, cls: "bg-red-500/20 text-red-400 border-red-500/30" });
+                          else if (diff <= 3 && diff > 0) tags.push({ label: "Close", cls: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" });
+                          if (tags.length === 0) return null;
+                          return (
+                            <span className="ml-1.5 inline-flex gap-1">
+                              {tags.map((t) => (
+                                <Badge key={t.label} variant="outline" className={`px-1 py-0 text-[9px] ${t.cls}`}>
+                                  {t.label}
+                                </Badge>
+                              ))}
+                            </span>
+                          );
+                        })()}
                       </Link>
                     </TableCell>
                     <TableCell className="text-right">

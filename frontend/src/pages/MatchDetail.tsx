@@ -14,8 +14,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MatchDetailSkeleton, ScoreboardSkeleton } from "@/components/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, Calendar, Copy, Check, Map as MapIcon } from "lucide-react";
-import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Clock, Calendar, Copy, Check, Map as MapIcon, Flame, Timer } from "lucide-react";
+import { useState, useMemo } from "react";
+import type { RoundEvent } from "../api/types";
 import { toast } from "sonner";
 
 const KillMap = lazy(() =>
@@ -68,6 +70,61 @@ function CopyHash({ hash }: { hash: string }) {
   );
 }
 
+function computeMatchResultLabel(scoreA: number, scoreB: number): { label: string; color: string } {
+  const total = scoreA + scoreB;
+  const diff = Math.abs(scoreA - scoreB);
+  if (total > 30) return { label: "Overtime", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" };
+  if (diff === 0) return { label: "Draw", color: "bg-muted text-muted-foreground" };
+  if (diff >= 8) return { label: "Decisive Win", color: "bg-green-500/20 text-green-400 border-green-500/30" };
+  if (diff >= 4) return { label: "Comfortable Win", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" };
+  return { label: "Close Match", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+}
+
+function computeHalftimeScore(
+  rounds: RoundEvent[],
+  teamAStartedAs: string,
+): { teamAFirstHalf: number; teamBFirstHalf: number } {
+  let teamAFirstHalf = 0;
+  let teamBFirstHalf = 0;
+  for (const r of rounds) {
+    if (r.roundNumber > 12) break;
+    if (r.winner === teamAStartedAs) {
+      teamAFirstHalf++;
+    } else {
+      teamBFirstHalf++;
+    }
+  }
+  return { teamAFirstHalf, teamBFirstHalf };
+}
+
+function computeLongestStreak(rounds: RoundEvent[], teamAStartedAs: string): { team: "A" | "B"; length: number } {
+  let bestTeam: "A" | "B" = "A";
+  let bestLen = 0;
+  let curTeam: "A" | "B" | null = null;
+  let curLen = 0;
+
+  for (const r of rounds) {
+    // in first half, teamA plays as teamAStartedAs. In second half, sides swap.
+    const teamAWon =
+      r.roundNumber <= 12
+        ? r.winner === teamAStartedAs
+        : r.winner !== teamAStartedAs;
+    const team = teamAWon ? "A" as const : "B" as const;
+
+    if (team === curTeam) {
+      curLen++;
+    } else {
+      curTeam = team;
+      curLen = 1;
+    }
+    if (curLen > bestLen) {
+      bestLen = curLen;
+      bestTeam = team;
+    }
+  }
+  return { team: bestTeam, length: bestLen };
+}
+
 export function MatchDetail() {
   const { matchId } = useParams({ from: "/matches/$matchId" });
 
@@ -105,6 +162,21 @@ export function MatchDetail() {
   const aWon = match.teamAScore > match.teamBScore;
   const bWon = match.teamBScore > match.teamAScore;
 
+  const roundData = roundsQ.data?.rounds ?? [];
+  const resultBadge = computeMatchResultLabel(match.teamAScore, match.teamBScore);
+  const totalRounds = match.teamAScore + match.teamBScore;
+  const isOvertime = totalRounds > 30;
+
+  const halftime = useMemo(() => {
+    if (roundData.length === 0 || !match.teamAStartedAs) return null;
+    return computeHalftimeScore(roundData, match.teamAStartedAs);
+  }, [roundData, match.teamAStartedAs]);
+
+  const longestStreak = useMemo(() => {
+    if (roundData.length === 0 || !match.teamAStartedAs) return null;
+    return computeLongestStreak(roundData, match.teamAStartedAs);
+  }, [roundData, match.teamAStartedAs]);
+
   return (
     <div className="space-y-6">
       {/* header card */}
@@ -137,6 +209,33 @@ export function MatchDetail() {
                 {match.teamBName}
               </div>
             </div>
+          </div>
+
+          {/* narrative badges */}
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            <Badge variant="outline" className={resultBadge.color}>
+              {resultBadge.label}
+            </Badge>
+            {halftime && (
+              <Badge variant="outline" className="gap-1 tabular-nums text-muted-foreground">
+                HT: {halftime.teamAFirstHalf}-{halftime.teamBFirstHalf}
+              </Badge>
+            )}
+            <Badge variant="outline" className="gap-1 tabular-nums text-muted-foreground">
+              {totalRounds} rounds
+            </Badge>
+            {isOvertime && (
+              <Badge variant="outline" className="gap-1 bg-purple-500/20 text-purple-400 border-purple-500/30">
+                <Timer className="h-3 w-3" />
+                OT
+              </Badge>
+            )}
+            {longestStreak && longestStreak.length >= 4 && (
+              <Badge variant="outline" className="gap-1 bg-orange-500/20 text-orange-400 border-orange-500/30">
+                <Flame className="h-3 w-3" />
+                {longestStreak.length}-round streak ({longestStreak.team === "A" ? match.teamAName : match.teamBName})
+              </Badge>
+            )}
           </div>
 
           {/* metadata row */}
@@ -199,6 +298,7 @@ export function MatchDetail() {
               rounds={roundsQ.data.rounds}
               teamAName={match.teamAName}
               teamBName={match.teamBName}
+              teamAStartedAs={match.teamAStartedAs}
               players={players}
             />
           )}
@@ -220,6 +320,8 @@ export function MatchDetail() {
               rounds={economyQ.data.rounds}
               teamAName={match.teamAName}
               teamBName={match.teamBName}
+              teamAStartedAs={match.teamAStartedAs}
+              roundWinners={roundData.map((r) => r.winner)}
             />
           )}
         </TabsContent>

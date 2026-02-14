@@ -1,14 +1,27 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { RoundEvent, Player, WinMethod } from "../api/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Skull, Bomb, Shield, Clock, Crosshair, Trophy } from "lucide-react";
+import { Skull, Bomb, Shield, Clock, Crosshair, Trophy, Flame } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+
+const CT_COLOR = "#5B9BD5";
 
 interface RoundTimelineProps {
   rounds: RoundEvent[];
   teamAName: string;
   teamBName: string;
+  teamAStartedAs: string;
   players: Player[];
 }
 
@@ -51,18 +64,67 @@ export function RoundTimeline({
   rounds,
   teamAName,
   teamBName,
+  teamAStartedAs,
   players,
 }: RoundTimelineProps) {
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
+
+  // determine if teamA won each round (accounts for side swap at half)
+  const teamAWonRound = (r: RoundEvent): boolean => {
+    if (r.roundNumber <= 12) return r.winner === teamAStartedAs;
+    return r.winner !== teamAStartedAs;
+  };
 
   // running score
   let scoreA = 0;
   let scoreB = 0;
   const scores = rounds.map((r) => {
-    if (r.winner === "CT") scoreA++;
+    if (teamAWonRound(r)) scoreA++;
     else scoreB++;
     return { a: scoreA, b: scoreB };
   });
+
+  // momentum data for chart
+  const momentumData = useMemo(() => {
+    let diff = 0;
+    return rounds.map((r) => {
+      diff += teamAWonRound(r) ? 1 : -1;
+      return { round: r.roundNumber, diff };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rounds, teamAStartedAs]);
+
+  // compute streaks (4+ rounds)
+  const streaks = useMemo(() => {
+    const result: { team: "A" | "B"; start: number; end: number; length: number }[] = [];
+    let curTeam: "A" | "B" | null = null;
+    let curStart = 0;
+    let curLen = 0;
+
+    for (const r of rounds) {
+      const team = teamAWonRound(r) ? "A" as const : "B" as const;
+      if (team === curTeam) {
+        curLen++;
+      } else {
+        if (curTeam && curLen >= 4) {
+          result.push({ team: curTeam, start: curStart, end: r.roundNumber - 1, length: curLen });
+        }
+        curTeam = team;
+        curStart = r.roundNumber;
+        curLen = 1;
+      }
+    }
+    if (curTeam && curLen >= 4) {
+      const lastRound = rounds[rounds.length - 1]?.roundNumber ?? curStart;
+      result.push({ team: curTeam, start: curStart, end: lastRound, length: curLen });
+    }
+    return result;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rounds, teamAStartedAs]);
+
+  // half-time scores
+  const htA = scores[11]?.a ?? 0;
+  const htB = scores[11]?.b ?? 0;
 
   const selected =
     selectedRound !== null
@@ -75,6 +137,81 @@ export function RoundTimeline({
 
   return (
     <div className="space-y-4">
+      {/* momentum graph */}
+      {momentumData.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Momentum</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={momentumData} margin={{ top: 10, right: 20, bottom: 5, left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215 20% 18%)" />
+                  <XAxis
+                    dataKey="round"
+                    tick={{ fill: "hsl(215 15% 50%)", fontSize: 11 }}
+                    label={{
+                      value: "Round",
+                      fill: "hsl(215 15% 50%)",
+                      position: "insideBottom",
+                      offset: -5,
+                      fontSize: 11,
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fill: "hsl(215 15% 50%)", fontSize: 11 }}
+                    label={{
+                      value: `← ${teamBName}  |  ${teamAName} →`,
+                      fill: "hsl(215 15% 50%)",
+                      angle: -90,
+                      position: "insideLeft",
+                      fontSize: 10,
+                      offset: -10,
+                    }}
+                  />
+                  <ReferenceLine y={0} stroke="hsl(215 15% 40%)" strokeWidth={1.5} />
+                  <ReferenceLine
+                    x={12.5}
+                    stroke="hsl(215 15% 35%)"
+                    strokeDasharray="4 4"
+                    label={{
+                      value: `HT ${htA}-${htB}`,
+                      fill: "hsl(215 15% 55%)",
+                      fontSize: 10,
+                      position: "top",
+                    }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(215 25% 12%)",
+                      border: "1px solid hsl(215 20% 22%)",
+                      borderRadius: "8px",
+                      fontSize: 12,
+                    }}
+                    labelStyle={{ color: "hsl(215 15% 80%)" }}
+                    labelFormatter={(v) => `Round ${v}`}
+                    formatter={(value: number) => {
+                      if (value > 0) return [`+${value} ${teamAName}`, "Lead"];
+                      if (value < 0) return [`+${Math.abs(value)} ${teamBName}`, "Lead"];
+                      return ["Tied", "Score"];
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="diff"
+                    stroke={CT_COLOR}
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: CT_COLOR }}
+                    activeDot={{ r: 5, fill: CT_COLOR }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* legend */}
       <div className="flex items-center gap-6 text-sm">
         <span className="flex items-center gap-1.5">
@@ -117,8 +254,8 @@ export function RoundTimeline({
         {/* round pills */}
         <div className="flex items-center gap-0.5">
           {rounds.map((r) => {
-            const isCT = r.winner === "CT";
-            const bg = isCT ? "bg-team-ct" : "bg-team-t";
+            const isTeamAWin = teamAWonRound(r);
+            const bg = isTeamAWin ? "bg-team-ct" : "bg-team-t";
             const isSelected = selectedRound === r.roundNumber;
             const isHalf = r.roundNumber === 12;
 
@@ -146,13 +283,35 @@ export function RoundTimeline({
                   />
                 </button>
                 {isHalf && (
-                  <Separator orientation="vertical" className="mx-1 h-10 bg-muted-foreground/30" />
+                  <div className="flex items-center gap-1">
+                    <Separator orientation="vertical" className="mx-1 h-10 bg-muted-foreground/30" />
+                    <span className="mx-1 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                      {htA}-{htB}
+                    </span>
+                    <Separator orientation="vertical" className="mx-1 h-10 bg-muted-foreground/30" />
+                  </div>
                 )}
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* streak badges */}
+      {streaks.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {streaks.map((s, i) => (
+            <Badge
+              key={i}
+              variant="outline"
+              className={`gap-1 ${s.team === "A" ? "border-team-ct/30 text-team-ct" : "border-team-t/30 text-team-t"}`}
+            >
+              <Flame className="h-3 w-3" />
+              {s.length}-round {s.team === "A" ? teamAName : teamBName} streak (R{s.start}-{s.end})
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {/* round detail */}
       {selected && selectedIdx >= 0 && (
@@ -165,12 +324,12 @@ export function RoundTimeline({
               <div className="flex items-center gap-2">
                 <Badge
                   className={
-                    selected.winner === "CT"
+                    teamAWonRound(selected)
                       ? "bg-team-ct/20 text-team-ct"
                       : "bg-team-t/20 text-team-t"
                   }
                 >
-                  {selected.winner === "CT" ? teamAName : teamBName} Win
+                  {teamAWonRound(selected) ? teamAName : teamBName} Win
                 </Badge>
                 <Badge variant="outline" className="gap-1">
                   <WinMethodIcon method={selected.winMethod} className="h-3 w-3" />

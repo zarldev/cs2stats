@@ -186,6 +186,12 @@ export function KillMap({
               const vp = normalize(k.victimPos.x, k.victimPos.y);
               const aColor = teamColor(k.attackerSteamId);
               const vColor = teamColor(k.victimSteamId);
+              // when a player filter is active, dim kills that don't involve the selected player as attacker
+              const isPlayerFiltered = filterPlayer !== "";
+              const isHighlighted = !isPlayerFiltered || k.attackerSteamId === filterPlayer;
+              const baseOpacity = isHighlighted ? 0.9 : 0.08;
+              const lineOpacity = isHighlighted ? 0.4 : 0.05;
+              const dotRadius = isHighlighted && isPlayerFiltered ? (k.isHeadshot ? 6 : 5) : (k.isHeadshot ? 5 : 4);
               return (
                 <g key={i}>
                   {/* dotted line */}
@@ -194,18 +200,18 @@ export function KillMap({
                     stroke="hsl(215 15% 30%)"
                     strokeWidth={0.8}
                     strokeDasharray="3 3"
-                    opacity={0.4}
+                    opacity={lineOpacity}
                   />
                   {/* attacker dot with glow */}
                   <circle
                     cx={ap.nx} cy={ap.ny}
-                    r={k.isHeadshot ? 5 : 4}
+                    r={dotRadius}
                     fill={aColor}
-                    opacity={0.9}
-                    filter="url(#glow)"
+                    opacity={baseOpacity}
+                    filter={isHighlighted ? "url(#glow)" : undefined}
                     stroke={k.isHeadshot ? "#fff" : aColor}
                     strokeWidth={k.isHeadshot ? 1.5 : 0.5}
-                    strokeOpacity={k.isHeadshot ? 0.8 : 0.3}
+                    strokeOpacity={isHighlighted ? (k.isHeadshot ? 0.8 : 0.3) : 0.05}
                     onMouseEnter={() => setHovered({ kill: k, x: ap.nx, y: ap.ny })}
                     onMouseLeave={() => setHovered(null)}
                     className="cursor-pointer"
@@ -218,11 +224,11 @@ export function KillMap({
                   >
                     <line
                       x1={vp.nx - 4} y1={vp.ny - 4} x2={vp.nx + 4} y2={vp.ny + 4}
-                      stroke={vColor} strokeWidth={2} opacity={0.8}
+                      stroke={vColor} strokeWidth={2} opacity={isHighlighted ? 0.8 : 0.08}
                     />
                     <line
                       x1={vp.nx + 4} y1={vp.ny - 4} x2={vp.nx - 4} y2={vp.ny + 4}
-                      stroke={vColor} strokeWidth={2} opacity={0.8}
+                      stroke={vColor} strokeWidth={2} opacity={isHighlighted ? 0.8 : 0.08}
                     />
                   </g>
                 </g>
