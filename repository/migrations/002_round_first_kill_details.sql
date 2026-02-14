@@ -1,0 +1,9 @@
+ALTER TABLE rounds ADD COLUMN first_kill_steam_id TEXT;
+ALTER TABLE rounds ADD COLUMN first_death_steam_id TEXT;
+ALTER TABLE rounds ADD COLUMN first_kill_weapon TEXT;
+ALTER TABLE rounds ADD COLUMN first_kill_round_time REAL;
+ALTER TABLE rounds ADD COLUMN bomb_plant_steam_id TEXT;
+ALTER TABLE rounds ADD COLUMN bomb_plant_site TEXT;
+ALTER TABLE rounds ADD COLUMN bomb_plant_round_time REAL;
+ALTER TABLE rounds ADD COLUMN bomb_defuse_steam_id TEXT;
+ALTER TABLE rounds ADD COLUMN bomb_defuse_round_time REAL;

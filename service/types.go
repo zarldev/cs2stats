@@ -64,7 +64,26 @@ type RoundEvent struct {
 	WinMethod          string
 	FirstKillPlayerID  string
 	FirstDeathPlayerID string
+	FirstKillSteamID   string
+	FirstDeathSteamID  string
+	FirstKillWeapon    string
+	FirstKillRoundTime float64
+	Plant              *PlantEvent
+	Defuse             *DefuseEvent
 	Clutch             *ClutchEvent
+}
+
+// PlantEvent describes a bomb plant in a round.
+type PlantEvent struct {
+	PlanterSteamID string
+	Site           string
+	RoundTime      float64
+}
+
+// DefuseEvent describes a bomb defuse in a round.
+type DefuseEvent struct {
+	DefuserSteamID string
+	RoundTime      float64
 }
 
 // ClutchEvent describes a clutch attempt.

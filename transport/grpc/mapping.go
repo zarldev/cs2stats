@@ -162,12 +162,25 @@ func roundEventToProto(r service.RoundEvent) *statsv1.RoundEvent {
 		Winner:      r.WinnerTeam,
 		WinMethod:   parseWinMethod(r.WinMethod),
 	}
-	// first kill: we only have player IDs from the service, not steam IDs.
-	// map them as-is since they're the identifiers the service layer provides.
-	if r.FirstKillPlayerID != "" || r.FirstDeathPlayerID != "" {
+	if r.FirstKillSteamID != "" || r.FirstDeathSteamID != "" {
 		pe.FirstKill = &statsv1.FirstKill{
-			AttackerSteamId: r.FirstKillPlayerID,
-			VictimSteamId:   r.FirstDeathPlayerID,
+			AttackerSteamId: r.FirstKillSteamID,
+			VictimSteamId:   r.FirstDeathSteamID,
+			Weapon:          r.FirstKillWeapon,
+			RoundTime:       float32(r.FirstKillRoundTime),
+		}
+	}
+	if r.Plant != nil {
+		pe.Plant = &statsv1.PlantEvent{
+			PlanterSteamId: r.Plant.PlanterSteamID,
+			Site:           r.Plant.Site,
+			RoundTime:      float32(r.Plant.RoundTime),
+		}
+	}
+	if r.Defuse != nil {
+		pe.Defuse = &statsv1.DefuseEvent{
+			DefuserSteamId: r.Defuse.DefuserSteamID,
+			RoundTime:      float32(r.Defuse.RoundTime),
 		}
 	}
 	if r.Clutch != nil {

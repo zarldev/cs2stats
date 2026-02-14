@@ -48,10 +48,16 @@ func seedMatch(t *testing.T, repo *SQLite) Match {
 			{
 				ID: "r1", Number: 1, WinnerTeam: "CT", WinMethod: "Elimination",
 				FirstKillPlayerID: "p1", FirstDeathPlayerID: "p2",
+				FirstKillSteamID: "76561198001", FirstDeathSteamID: "76561198002",
+				FirstKillWeapon: "AK-47", FirstKillRoundTime: 5.3,
 			},
 			{
 				ID: "r2", Number: 2, WinnerTeam: "T", WinMethod: "BombExploded",
 				FirstKillPlayerID: "p2", FirstDeathPlayerID: "p1",
+				FirstKillSteamID: "76561198002", FirstDeathSteamID: "76561198001",
+				FirstKillWeapon: "AWP", FirstKillRoundTime: 12.7,
+				BombPlantSteamID: "76561198002", BombPlantSite: "B",
+				BombPlantRoundTime: 35.2,
 				Clutch: &Clutch{
 					RoundID: "r2", PlayerID: "p2", Opponents: 2, Success: true,
 				},
@@ -292,6 +298,18 @@ func TestGetRounds(t *testing.T) {
 	if r1.Clutch != nil {
 		t.Error("round 1 should have no clutch")
 	}
+	if r1.FirstKillSteamID != "76561198001" {
+		t.Errorf("round 1 first kill steam ID: got %s, want 76561198001", r1.FirstKillSteamID)
+	}
+	if r1.FirstDeathSteamID != "76561198002" {
+		t.Errorf("round 1 first death steam ID: got %s, want 76561198002", r1.FirstDeathSteamID)
+	}
+	if r1.FirstKillWeapon != "AK-47" {
+		t.Errorf("round 1 first kill weapon: got %s, want AK-47", r1.FirstKillWeapon)
+	}
+	if r1.FirstKillRoundTime != 5.3 {
+		t.Errorf("round 1 first kill round time: got %f, want 5.3", r1.FirstKillRoundTime)
+	}
 
 	r2 := rounds[1]
 	if r2.Clutch == nil {
@@ -302,6 +320,18 @@ func TestGetRounds(t *testing.T) {
 	}
 	if r2.Clutch.Opponents != 2 {
 		t.Errorf("clutch opponents: got %d, want 2", r2.Clutch.Opponents)
+	}
+	if r2.BombPlantSteamID != "76561198002" {
+		t.Errorf("round 2 bomb plant steam ID: got %s, want 76561198002", r2.BombPlantSteamID)
+	}
+	if r2.BombPlantSite != "B" {
+		t.Errorf("round 2 bomb plant site: got %s, want B", r2.BombPlantSite)
+	}
+	if r2.BombPlantRoundTime != 35.2 {
+		t.Errorf("round 2 bomb plant round time: got %f, want 35.2", r2.BombPlantRoundTime)
+	}
+	if r2.BombDefuseSteamID != "" {
+		t.Errorf("round 2 should have no defuse, got steam ID %s", r2.BombDefuseSteamID)
 	}
 }
 

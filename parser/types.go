@@ -80,6 +80,7 @@ type Round struct {
 	Clutch     *ClutchInfo
 	CTEconomy  EconomySnapshot
 	TEconomy   EconomySnapshot
+	StartTime  time.Duration // game time at freeze-time end
 	Duration   time.Duration
 	BombPlant  *BombEvent
 	BombDefuse *BombEvent

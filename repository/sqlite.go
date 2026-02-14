@@ -64,13 +64,43 @@ func (s *SQLite) Close() error {
 }
 
 func (s *SQLite) migrate() error {
-	data, err := migrations.ReadFile("migrations/001_initial.sql")
+	// create version tracking table
+	_, err := s.db.Exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)`)
 	if err != nil {
-		return fmt.Errorf("read migration: %w", err)
+		return fmt.Errorf("create schema_version table: %w", err)
 	}
-	_, err = s.db.Exec(string(data))
-	if err != nil {
-		return fmt.Errorf("execute migration: %w", err)
+
+	var current int
+	row := s.db.QueryRow(`SELECT COALESCE(MAX(version), 0) FROM schema_version`)
+	if err := row.Scan(&current); err != nil {
+		return fmt.Errorf("read schema version: %w", err)
+	}
+
+	type migration struct {
+		version int
+		file    string
+	}
+	all := []migration{
+		{1, "migrations/001_initial.sql"},
+		{2, "migrations/002_round_first_kill_details.sql"},
+	}
+
+	for _, m := range all {
+		if m.version <= current {
+			continue
+		}
+		data, err := migrations.ReadFile(m.file)
+		if err != nil {
+			return fmt.Errorf("read migration %s: %w", m.file, err)
+		}
+		_, err = s.db.Exec(string(data))
+		if err != nil {
+			return fmt.Errorf("execute migration %s: %w", m.file, err)
+		}
+		_, err = s.db.Exec(`INSERT INTO schema_version (version) VALUES (?)`, m.version)
+		if err != nil {
+			return fmt.Errorf("record migration version %d: %w", m.version, err)
+		}
 	}
 	return nil
 }
@@ -130,10 +160,18 @@ func (s *SQLite) StoreMatch(ctx context.Context, m Match) (string, error) {
 	// insert rounds, clutches, economy
 	for _, r := range m.Rounds {
 		_, err = tx.ExecContext(ctx,
-			`INSERT INTO rounds (id, match_id, number, winner_team, win_method, first_kill_player_id, first_death_player_id)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO rounds (id, match_id, number, winner_team, win_method,
+			 first_kill_player_id, first_death_player_id,
+			 first_kill_steam_id, first_death_steam_id, first_kill_weapon, first_kill_round_time,
+			 bomb_plant_steam_id, bomb_plant_site, bomb_plant_round_time,
+			 bomb_defuse_steam_id, bomb_defuse_round_time)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			r.ID, m.ID, r.Number, r.WinnerTeam, r.WinMethod,
 			nullString(r.FirstKillPlayerID), nullString(r.FirstDeathPlayerID),
+			nullString(r.FirstKillSteamID), nullString(r.FirstDeathSteamID),
+			nullString(r.FirstKillWeapon), nullFloat(r.FirstKillRoundTime),
+			nullString(r.BombPlantSteamID), nullString(r.BombPlantSite), nullFloat(r.BombPlantRoundTime),
+			nullString(r.BombDefuseSteamID), nullFloat(r.BombDefuseRoundTime),
 		)
 		if err != nil {
 			return "", fmt.Errorf("insert round %d: %w", r.Number, err)
@@ -309,7 +347,12 @@ func (s *SQLite) GetPlayerStats(ctx context.Context, matchID string) ([]PlayerSt
 func (s *SQLite) GetRounds(ctx context.Context, matchID string) ([]Round, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT r.id, r.match_id, r.number, r.winner_team, r.win_method,
-		        COALESCE(r.first_kill_player_id, ''), COALESCE(r.first_death_player_id, '')
+		        COALESCE(r.first_kill_player_id, ''), COALESCE(r.first_death_player_id, ''),
+		        COALESCE(r.first_kill_steam_id, ''), COALESCE(r.first_death_steam_id, ''),
+		        COALESCE(r.first_kill_weapon, ''), COALESCE(r.first_kill_round_time, 0),
+		        COALESCE(r.bomb_plant_steam_id, ''), COALESCE(r.bomb_plant_site, ''),
+		        COALESCE(r.bomb_plant_round_time, 0),
+		        COALESCE(r.bomb_defuse_steam_id, ''), COALESCE(r.bomb_defuse_round_time, 0)
 		 FROM rounds r
 		 WHERE r.match_id = ?
 		 ORDER BY r.number`, matchID,
@@ -323,7 +366,11 @@ func (s *SQLite) GetRounds(ctx context.Context, matchID string) ([]Round, error)
 	for rows.Next() {
 		var r Round
 		if err := rows.Scan(&r.ID, &r.MatchID, &r.Number, &r.WinnerTeam, &r.WinMethod,
-			&r.FirstKillPlayerID, &r.FirstDeathPlayerID); err != nil {
+			&r.FirstKillPlayerID, &r.FirstDeathPlayerID,
+			&r.FirstKillSteamID, &r.FirstDeathSteamID,
+			&r.FirstKillWeapon, &r.FirstKillRoundTime,
+			&r.BombPlantSteamID, &r.BombPlantSite, &r.BombPlantRoundTime,
+			&r.BombDefuseSteamID, &r.BombDefuseRoundTime); err != nil {
 			return nil, fmt.Errorf("scan round: %w", err)
 		}
 		rounds = append(rounds, r)
@@ -422,6 +469,13 @@ func nullString(s string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: s, Valid: true}
+}
+
+func nullFloat(f float64) sql.NullFloat64 {
+	if f == 0 {
+		return sql.NullFloat64{}
+	}
+	return sql.NullFloat64{Float64: f, Valid: true}
 }
 
 func boolToInt(b bool) int {
