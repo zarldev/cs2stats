@@ -1,0 +1,39 @@
+# binaries
+/cs2stats
+/bin/
+
+# go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+
+# generated code
+transport/grpc/gen/
+frontend/src/gen/
+
+# ide
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# os
+.DS_Store
+Thumbs.db
+
+# env
+.env
+.env.local
+
+# uploads
+uploads/
+*.dem
