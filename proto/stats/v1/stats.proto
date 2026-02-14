@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package stats.v1;
+
+option go_package = "github.com/zarldev/cs2stats/transport/grpc/gen/stats/v1;statsv1";
+
+// StatsService provides detailed statistics for parsed matches.
+service StatsService {
+  // GetPlayerStats returns per-player stats for a match.
+  rpc GetPlayerStats(GetPlayerStatsRequest) returns (GetPlayerStatsResponse);
+
+  // GetEconomyStats returns buy patterns and equipment values per round.
+  rpc GetEconomyStats(GetEconomyStatsRequest) returns (GetEconomyStatsResponse);
+
+  // GetRoundTimeline returns round-by-round events for a match.
+  rpc GetRoundTimeline(GetRoundTimelineRequest) returns (GetRoundTimelineResponse);
+
+  // GetPositionalData returns kill positions for map visualization.
+  rpc GetPositionalData(GetPositionalDataRequest) returns (GetPositionalDataResponse);
+}
+
+// player stats
+
+message GetPlayerStatsRequest {
+  string match_id = 1;
+  string steam_id = 2; // optional — omit for all players
+}
+
+message GetPlayerStatsResponse {
+  repeated PlayerStats players = 1;
+}
+
+message PlayerStats {
+  string steam_id = 1;
+  string name = 2;
+  string team = 3;
+  int32 kills = 4;
+  int32 deaths = 5;
+  int32 assists = 6;
+  float adr = 7;         // average damage per round
+  float kast = 8;        // kill/assist/survived/traded percentage
+  float hs_pct = 9;      // headshot percentage
+  float rating = 10;     // HLTV-style rating
+  int32 flash_assists = 11;
+  int32 utility_damage = 12;
+}
+
+// economy stats
+
+message GetEconomyStatsRequest {
+  string match_id = 1;
+}
+
+message GetEconomyStatsResponse {
+  repeated EconomyRound rounds = 1;
+}
+
+message EconomyRound {
+  int32 round_number = 1;
+  int32 team_a_spend = 2;
+  int32 team_b_spend = 3;
+  int32 team_a_equipment_value = 4;
+  int32 team_b_equipment_value = 5;
+  BuyType team_a_buy_type = 6;
+  BuyType team_b_buy_type = 7;
+}
+
+enum BuyType {
+  BUY_TYPE_UNSPECIFIED = 0;
+  BUY_TYPE_ECO = 1;
+  BUY_TYPE_FORCE = 2;
+  BUY_TYPE_FULL = 3;
+  BUY_TYPE_PISTOL = 4;
+}
+
+// round timeline
+
+message GetRoundTimelineRequest {
+  string match_id = 1;
+}
+
+message GetRoundTimelineResponse {
+  repeated RoundEvent rounds = 1;
+}
+
+message RoundEvent {
+  int32 round_number = 1;
+  string winner = 2;         // team name
+  WinMethod win_method = 3;
+  FirstKill first_kill = 4;
+  ClutchInfo clutch = 5;
+  PlantEvent plant = 6;
+  DefuseEvent defuse = 7;
+}
+
+enum WinMethod {
+  WIN_METHOD_UNSPECIFIED = 0;
+  WIN_METHOD_ELIMINATION = 1;
+  WIN_METHOD_BOMB_EXPLODED = 2;
+  WIN_METHOD_BOMB_DEFUSED = 3;
+  WIN_METHOD_TIME_EXPIRED = 4;
+}
+
+message FirstKill {
+  string attacker_steam_id = 1;
+  string victim_steam_id = 2;
+  string weapon = 3;
+  float round_time = 4; // seconds into the round
+}
+
+message ClutchInfo {
+  string player_steam_id = 1;
+  int32 opponents_alive = 2; // 1v1, 1v2, etc.
+  bool won = 3;
+}
+
+message PlantEvent {
+  string planter_steam_id = 1;
+  string site = 2; // "A" or "B"
+  float round_time = 3;
+}
+
+message DefuseEvent {
+  string defuser_steam_id = 1;
+  float round_time = 2;
+}
+
+// positional data
+
+message GetPositionalDataRequest {
+  string match_id = 1;
+  int32 round_number = 2; // optional — 0 for all rounds
+}
+
+message GetPositionalDataResponse {
+  string map_name = 1;
+  repeated KillPosition kills = 2;
+}
+
+message KillPosition {
+  int32 round_number = 1;
+  string attacker_steam_id = 2;
+  string victim_steam_id = 3;
+  Position attacker_pos = 4;
+  Position victim_pos = 5;
+  string weapon = 6;
+  bool is_headshot = 7;
+}
+
+message Position {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
