@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { useMemo } from "react";
 import type { EconomyRound, BuyType } from "../api/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,11 +21,14 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { DollarSign, TrendingUp } from "lucide-react";
 
 interface EconomyChartProps {
   rounds: EconomyRound[];
   teamAName: string;
   teamBName: string;
+  teamAStartedAs: string;
+  roundWinners: string[];
 }
 
 function buyTypeLabel(bt: BuyType): string {
@@ -60,10 +64,29 @@ function buyTypeBadgeClass(bt: BuyType): string {
 const CT_COLOR = "#5B9BD5";
 const T_COLOR = "#EAC843";
 
+function teamAWonRound(roundNumber: number, winner: string, teamAStartedAs: string): boolean {
+  if (roundNumber <= 12) return winner === teamAStartedAs;
+  return winner !== teamAStartedAs;
+}
+
+function buyOutcomeBadge(buyType: BuyType, won: boolean): { label: string; cls: string } | null {
+  const label = buyTypeLabel(buyType);
+  if (!label) return null;
+  if (won) {
+    if (buyType === "BUY_TYPE_ECO" || buyType === "BUY_TYPE_FORCE") {
+      return { label: `${label} Win!`, cls: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+    }
+    return { label: "Won", cls: "bg-green-500/20 text-green-400 border-green-500/30" };
+  }
+  return { label: "Lost", cls: "bg-red-500/20 text-red-400 border-red-500/30" };
+}
+
 export function EconomyChart({
   rounds,
   teamAName,
   teamBName,
+  teamAStartedAs,
+  roundWinners,
 }: EconomyChartProps) {
   const data = rounds.map((r) => ({
     round: r.roundNumber,
@@ -75,8 +98,64 @@ export function EconomyChart({
     teamBBuy: r.teamBBuyType,
   }));
 
+  // economic narrative stats
+  const ecoStats = useMemo(() => {
+    let teamAEcoWins = 0;
+    let teamBEcoWins = 0;
+    let teamAForceWins = 0;
+    let teamBForceWins = 0;
+
+    for (const r of rounds) {
+      const winner = roundWinners[r.roundNumber - 1];
+      if (!winner) continue;
+      const aWon = teamAWonRound(r.roundNumber, winner, teamAStartedAs);
+
+      if (aWon) {
+        if (r.teamABuyType === "BUY_TYPE_ECO") teamAEcoWins++;
+        if (r.teamABuyType === "BUY_TYPE_FORCE") teamAForceWins++;
+      } else {
+        if (r.teamBBuyType === "BUY_TYPE_ECO") teamBEcoWins++;
+        if (r.teamBBuyType === "BUY_TYPE_FORCE") teamBForceWins++;
+      }
+    }
+    return { teamAEcoWins, teamBEcoWins, teamAForceWins, teamBForceWins };
+  }, [rounds, roundWinners, teamAStartedAs]);
+
+  const hasNarrative =
+    ecoStats.teamAEcoWins + ecoStats.teamBEcoWins + ecoStats.teamAForceWins + ecoStats.teamBForceWins > 0;
+
   return (
     <div className="space-y-4">
+      {/* economic narrative badges */}
+      {hasNarrative && (
+        <div className="flex flex-wrap gap-2">
+          {ecoStats.teamAEcoWins > 0 && (
+            <Badge variant="outline" className="gap-1 border-team-ct/30 text-team-ct">
+              <DollarSign className="h-3 w-3" />
+              {teamAName}: {ecoStats.teamAEcoWins} eco win{ecoStats.teamAEcoWins > 1 ? "s" : ""}
+            </Badge>
+          )}
+          {ecoStats.teamBEcoWins > 0 && (
+            <Badge variant="outline" className="gap-1 border-team-t/30 text-team-t">
+              <DollarSign className="h-3 w-3" />
+              {teamBName}: {ecoStats.teamBEcoWins} eco win{ecoStats.teamBEcoWins > 1 ? "s" : ""}
+            </Badge>
+          )}
+          {ecoStats.teamAForceWins > 0 && (
+            <Badge variant="outline" className="gap-1 border-team-ct/30 text-team-ct">
+              <TrendingUp className="h-3 w-3" />
+              {teamAName}: {ecoStats.teamAForceWins} force buy win{ecoStats.teamAForceWins > 1 ? "s" : ""}
+            </Badge>
+          )}
+          {ecoStats.teamBForceWins > 0 && (
+            <Badge variant="outline" className="gap-1 border-team-t/30 text-team-t">
+              <TrendingUp className="h-3 w-3" />
+              {teamBName}: {ecoStats.teamBForceWins} force buy win{ecoStats.teamBForceWins > 1 ? "s" : ""}
+            </Badge>
+          )}
+        </div>
+      )}
+
       {/* chart */}
       <Card>
         <CardHeader className="pb-2">
@@ -193,31 +272,55 @@ export function EconomyChart({
                 <TableCell className="sticky left-0 bg-card pl-4 text-team-ct">
                   {teamAName}
                 </TableCell>
-                {rounds.map((r) => (
-                  <TableCell key={r.roundNumber} className="text-center">
-                    <Badge
-                      variant="outline"
-                      className={`px-1.5 py-0 text-[10px] ${buyTypeBadgeClass(r.teamABuyType)}`}
-                    >
-                      {buyTypeLabel(r.teamABuyType)}
-                    </Badge>
-                  </TableCell>
-                ))}
+                {rounds.map((r) => {
+                  const winner = roundWinners[r.roundNumber - 1];
+                  const aWon = winner ? teamAWonRound(r.roundNumber, winner, teamAStartedAs) : null;
+                  const outcome = aWon !== null ? buyOutcomeBadge(r.teamABuyType, aWon) : null;
+                  return (
+                    <TableCell key={r.roundNumber} className="text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <Badge
+                          variant="outline"
+                          className={`px-1.5 py-0 text-[10px] ${buyTypeBadgeClass(r.teamABuyType)}`}
+                        >
+                          {buyTypeLabel(r.teamABuyType)}
+                        </Badge>
+                        {outcome && (
+                          <span className={`text-[9px] font-medium ${outcome.cls.split(" ").filter(c => c.startsWith("text-")).join(" ")}`}>
+                            {outcome.label}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  );
+                })}
               </TableRow>
               <TableRow>
                 <TableCell className="sticky left-0 bg-card pl-4 text-team-t">
                   {teamBName}
                 </TableCell>
-                {rounds.map((r) => (
-                  <TableCell key={r.roundNumber} className="text-center">
-                    <Badge
-                      variant="outline"
-                      className={`px-1.5 py-0 text-[10px] ${buyTypeBadgeClass(r.teamBBuyType)}`}
-                    >
-                      {buyTypeLabel(r.teamBBuyType)}
-                    </Badge>
-                  </TableCell>
-                ))}
+                {rounds.map((r) => {
+                  const winner = roundWinners[r.roundNumber - 1];
+                  const bWon = winner ? !teamAWonRound(r.roundNumber, winner, teamAStartedAs) : null;
+                  const outcome = bWon !== null ? buyOutcomeBadge(r.teamBBuyType, bWon) : null;
+                  return (
+                    <TableCell key={r.roundNumber} className="text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <Badge
+                          variant="outline"
+                          className={`px-1.5 py-0 text-[10px] ${buyTypeBadgeClass(r.teamBBuyType)}`}
+                        >
+                          {buyTypeLabel(r.teamBBuyType)}
+                        </Badge>
+                        {outcome && (
+                          <span className={`text-[9px] font-medium ${outcome.cls.split(" ").filter(c => c.startsWith("text-")).join(" ")}`}>
+                            {outcome.label}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             </TableBody>
           </Table>

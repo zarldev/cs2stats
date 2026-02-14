@@ -13,6 +13,7 @@ export interface Match {
   teamAScore: number;
   teamBScore: number;
   demoFileHash: string;
+  teamAStartedAs: string;
 }
 
 export interface Player {
